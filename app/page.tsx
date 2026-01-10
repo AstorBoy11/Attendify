@@ -44,16 +44,6 @@ const AttendifyLanding: React.FC = () => {
                         </Link>
                       </div>
                     </div> 
-
-                    <div className="flex-1 w-full max-w-150 perspective-1000">
-                      <div 
-                        className="relative w-full aspect-4/3 rounded-xl overflow-hidden shadow-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 transform rotate-y-[-5deg] hover:rotate-y-0 transition-transform duration-500 ease-out" 
-                        data-alt="Minimalist dashboard interface" 
-                        style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuBZTCzqPhuZvmez0T4saNs8BGhr2JBw8RQxbcmoNm-VXSCjUhkz1q5d5c0eZMWAr0B1BcUPOM8S050Gx1Fnoi7BID-dJte_N-sZ2zMlkFPfcgdSA4vDTBM4qGliBOx43vaZ6iubWA6kFFALAv5dJAdQS1SGHandwC-ilA8EH7ITaj89-7xTHE7BWM0U9hpDlXruZ2tTBUzwv62Q9ENo1G0LkZ7qXEYp5H2PHmkFR_uj9Z5iZm78FspWv1f4JVA57T7Du4DjoXh3Z7Q')", backgroundSize: 'cover', backgroundPosition: 'center' }}
-                      >
-                        <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent"></div>
-                      </div>
-                    </div>
                   </div> 
                 </div>
               </div>

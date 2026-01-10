@@ -157,7 +157,7 @@ const LoginPage = () => {
 
           {/* Footer / Copyright */}
           <div className="mt-8 text-center text-xs text-[#617589] dark:text-[#9AAAB8]">
-            <p>© 2024 Attendify Inc. All rights reserved.</p>
+            <p>© 2026 Developer Josjis.</p>
           </div>
         </div>
       </div>
