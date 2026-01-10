@@ -113,8 +113,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, user }) => {
 
           {/* Settings Link */}
           {/* Perhatikan href disini saya samakan dengan pathname yang dicek */}
-          <Link href="/setting" className={getLinkClass('/setting')}>
-            <span className={`material-symbols-outlined text-[22px] transition-colors ${pathname === '/setting' ? 'text-[#137fec]' : 'group-hover:text-white'}`}>
+          <Link href="/settings" className={getLinkClass('/settings')}>
+            <span className={`material-symbols-outlined text-[22px] transition-colors ${pathname === '/settings' ? 'text-[#137fec]' : 'group-hover:text-white'}`}>
               settings
             </span>
             <span>Settings</span>
@@ -127,8 +127,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, user }) => {
           {/* === POP UP MENU (Drop Up) === */}
           <div
             className={`absolute bottom-[calc(100%+8px)] left-4 right-4 bg-[#1c2632] border border-[#283039] rounded-xl shadow-xl overflow-hidden transition-all duration-200 origin-bottom ${isUserMenuOpen
-                ? 'opacity-100 scale-100 translate-y-0 visible'
-                : 'opacity-0 scale-95 translate-y-2 invisible pointer-events-none'
+              ? 'opacity-100 scale-100 translate-y-0 visible'
+              : 'opacity-0 scale-95 translate-y-2 invisible pointer-events-none'
               }`}
           >
             <div className="flex flex-col py-1">
