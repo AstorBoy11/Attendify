@@ -80,16 +80,18 @@ const LoginPage = () => {
               </div>
 
               {/* Login Button */}
-              <button className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-[#137fec] text-white text-base font-bold leading-normal tracking-[0.015em] hover:bg-[#1170d2] transition-colors shadow-sm mt-2">
-                <span className="truncate">Sign in</span>
-              </button>
+              <Link href="/dashboard">
+                <button className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-[#137fec] text-white text-base font-bold leading-normal tracking-[0.015em] hover:bg-[#1170d2] transition-colors shadow-sm mt-2">
+                  <span className="truncate">Login</span>
+                </button>
+              </Link>
 
               {/* Sign Up Footer */}
               <div className="mt-4 text-center">
                     <p className="text-[#617589] dark:text-[#9AAAB8] text-sm">
                       Don't have an account?{' '}
                       <a className="text-[#137fec] font-medium hover:underline" href="/auth/register">
-                        Sign up
+                        Register
                       </a>
                     </p>
               </div>
