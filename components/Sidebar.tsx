@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import Link from 'next/link'; // Import Link untuk routing Next.js
-import { usePathname } from 'next/navigation'; // Opsional: untuk active state styling
+import Link from 'next/link'; 
+import { usePathname } from 'next/navigation'; // Wajib ada untuk mendeteksi URL aktif
 
 interface SidebarProps {
   isOpen: boolean;
@@ -10,6 +10,9 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
+  // 1. Ambil path URL saat ini (misal: "/dashboard" atau "/profile")
+  const pathname = usePathname();
+
   // State untuk dropdown menu user
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   
@@ -29,6 +32,22 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  // 2. Helper function untuk menentukan class active/inactive
+  const getLinkClass = (path: string) => {
+    // Cek apakah pathname saat ini sama dengan path menu
+    const isActive = pathname === path || pathname?.startsWith(`${path}/`);
+
+    const baseClass = "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors group";
+    
+    // Style Active (Seperti Settings di gambar: Teks Biru + Background Gelap)
+    const activeClass = "text-[#137fec] bg-[#1c2632] font-semibold";
+    
+    // Style Inactive (Abu-abu, hover jadi putih)
+    const inactiveClass = "text-gray-400 hover:text-white hover:bg-[#1c2632] font-medium";
+
+    return `${baseClass} ${isActive ? activeClass : inactiveClass}`;
+  };
 
   return (
     <>
@@ -64,27 +83,36 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
         {/* Menu Links */}
         <nav className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto">
-          {/* Note: Menggunakan Link Next.js untuk performa SPA */}
-          <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-[#1c2632] rounded-lg transition-colors group">
-            <span className="material-symbols-outlined text-[22px] group-hover:text-white transition-colors">grid_view</span>
-            <span className="font-medium">Dashboard</span>
+          {/* Dashboard Link */}
+          <Link href="/dashboard" className={getLinkClass('/dashboard')}>
+            <span className={`material-symbols-outlined text-[22px] transition-colors ${pathname === '/dashboard' ? 'text-[#137fec]' : 'group-hover:text-white'}`}>
+              grid_view
+            </span>
+            <span>Dashboard</span>
           </Link>
-          <Link href="/reports" className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-[#1c2632] rounded-lg transition-colors group">
-            <span className="material-symbols-outlined text-[22px] group-hover:text-white transition-colors">description</span>
-            <span className="font-medium">Reports</span>
+
+          {/* Reports Link */}
+          <Link href="/reports" className={getLinkClass('/reports')}>
+            <span className={`material-symbols-outlined text-[22px] transition-colors ${pathname === '/reports' ? 'text-[#137fec]' : 'group-hover:text-white'}`}>
+              description
+            </span>
+            <span>Reports</span>
           </Link>
-          <Link href="/setting" className="flex items-center gap-3 px-4 py-3 text-[#137fec] bg-[#1c2632] rounded-lg transition-colors">
-            <span className="material-symbols-outlined text-[22px]">settings</span>
-            <span className="font-medium">Settings</span>
+
+          {/* Settings Link */}
+          {/* Perhatikan href disini saya samakan dengan pathname yang dicek */}
+          <Link href="/setting" className={getLinkClass('/setting')}>
+            <span className={`material-symbols-outlined text-[22px] transition-colors ${pathname === '/setting' ? 'text-[#137fec]' : 'group-hover:text-white'}`}>
+              settings
+            </span>
+            <span>Settings</span>
           </Link>
         </nav>
 
         {/* Footer (User Profile & Drop Up Menu) */}
-        {/* Kita tambahkan 'relative' di sini agar menu popup absolute posisinya relatif terhadap footer ini */}
         <div className="p-4 border-t border-[#283039] relative" ref={menuRef}>
           
           {/* === POP UP MENU (Drop Up) === */}
-          {/* Kondisional rendering berdasarkan state */}
           <div 
             className={`absolute bottom-[calc(100%+8px)] left-4 right-4 bg-[#1c2632] border border-[#283039] rounded-xl shadow-xl overflow-hidden transition-all duration-200 origin-bottom ${
               isUserMenuOpen 
@@ -97,13 +125,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 <Link 
                   href="/profile" 
                   onClick={() => setIsUserMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:text-white hover:bg-[#283039] transition-colors"
+                  // Profile juga bisa dikasih active state jika mau
+                  className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors ${pathname === '/profile' ? 'text-[#137fec] bg-[#283039]' : 'text-gray-300 hover:text-white hover:bg-[#283039]'}`}
                 >
                   <span className="material-symbols-outlined text-[20px]">person</span>
                   Profile
                 </Link>
                 
-                {/* Divider Tipis */}
                 <div className="h-[1px] bg-[#283039] mx-2 my-1"></div>
 
                 {/* Menu: Logout */}
@@ -133,7 +161,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               <p className="text-xs text-gray-400 truncate">jane@attendify.com</p>
             </div>
             
-            {/* Indikator Panah Kecil (Opsional tapi bagus untuk UX) */}
             <span className={`material-symbols-outlined text-gray-500 transition-transform duration-300 ${isUserMenuOpen ? 'rotate-180' : ''}`}>
               expand_less
             </span>
