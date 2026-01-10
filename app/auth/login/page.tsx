@@ -14,7 +14,7 @@ const LoginPage = () => {
         <div className="relative flex min-h-screen w-full flex-col justify-center items-center overflow-x-hidden p-4">
           
           {/* Main Card Container */}
-          <div className="w-full max-w-[480px] bg-white dark:bg-[#1C252E] rounded-xl shadow-lg border border-[#e5e7eb] dark:border-[#2e3740] p-8 md:p-12 transition-colors duration-300">
+          <div className="w-full max-w-120 bg-white dark:bg-[#1C252E] rounded-xl shadow-lg border border-[#e5e7eb] dark:border-[#2e3740] p-8 md:p-12 transition-colors duration-300">
             <div className="size-full">
               <Link href="/">
                 <button className="flex items-center text-[#617589] dark:text-[#9AAAB8] text-sm font-medium hover:underline mb-4">
@@ -80,8 +80,8 @@ const LoginPage = () => {
               </div>
 
               {/* Login Button */}
-              <Link href="/dashboard">
-                <button className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-[#137fec] text-white text-base font-bold leading-normal tracking-[0.015em] hover:bg-[#1170d2] transition-colors shadow-sm mt-2">
+              <Link href="/dashboard" className="mt-2 block w-full">
+                <button className="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-[#137fec] text-white text-base font-bold leading-normal tracking-[0.015em] hover:bg-[#1170d2] transition-colors shadow-sm">
                   <span className="truncate">Login</span>
                 </button>
               </Link>
