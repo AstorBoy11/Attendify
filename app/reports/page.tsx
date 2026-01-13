@@ -3,8 +3,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
-import { Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { Calendar, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import ModernTimePicker from '@/components/ui/ModernTimePicker';
 
 interface AttendanceRecord {
   _id: string;
@@ -16,6 +17,8 @@ interface AttendanceRecord {
   isManual?: boolean;
   notes?: string;
 }
+
+type ApiAttendanceRecord = Omit<AttendanceRecord, '_id'> & { _id?: unknown };
 
 const MonthlyAttendanceReport: React.FC = () => {
   const router = useRouter();
@@ -92,9 +95,9 @@ const MonthlyAttendanceReport: React.FC = () => {
       if (historyRes.ok) {
         const historyData = await historyRes.json();
         const normalized: AttendanceRecord[] = (historyData.records || [])
-          .map((r: any) => ({
+          .map((r: ApiAttendanceRecord) => ({
             ...r,
-            _id: normalizeRecordId(r?._id),
+            _id: normalizeRecordId(r._id),
           }))
           .filter((r: AttendanceRecord) => r._id);
 
@@ -214,7 +217,7 @@ const MonthlyAttendanceReport: React.FC = () => {
   };
 
   const openEditModal = (record: AttendanceRecord) => {
-    const id = normalizeRecordId((record as any)?._id);
+    const id = normalizeRecordId(record._id);
     if (!id) {
       alert('Invalid record id');
       return;
@@ -262,7 +265,7 @@ const MonthlyAttendanceReport: React.FC = () => {
   };
 
   const handleDelete = async (record: AttendanceRecord) => {
-    const id = normalizeRecordId((record as any)?._id);
+    const id = normalizeRecordId(record._id);
     if (!id) {
       alert('Invalid record id');
       return;
@@ -511,47 +514,44 @@ const MonthlyAttendanceReport: React.FC = () => {
 
             <form onSubmit={handleManualSubmit} className="p-6 flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-semibold text-[#9dabb9]">Date</label>
-                <input
-                  type="date"
-                  required
-                  value={manualForm.date}
-                  onChange={(e) => setManualForm({ ...manualForm, date: e.target.value })}
-                  className="bg-[#111418] border border-[#3b4754] text-white rounded-lg px-3 py-2.5 focus:border-[#137fec] outline-none transition-all"
-                />
+                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider ml-1">Date <span className="text-red-500">*</span></label>
+                <div className="relative group">
+                  <input
+                    type="date"
+                    required
+                    value={manualForm.date}
+                    onChange={(e) => setManualForm({ ...manualForm, date: e.target.value })}
+                    className="w-full bg-[#111418] border border-[#3b4754] text-white rounded-xl px-4 py-3 pl-11 focus:border-[#137fec] outline-none transition-all cursor-pointer group-hover:border-[#137fec]/50"
+                    onClick={(e) => { try { e.currentTarget.showPicker() } catch { } }}
+                    style={{ colorScheme: 'dark' }}
+                  />
+                  <Calendar className="absolute left-3.5 top-3.5 text-gray-500 group-hover:text-[#137fec] transition-colors pointer-events-none" size={18} />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-semibold text-[#9dabb9]">Check In</label>
-                  <input
-                    type="time"
-                    required
-                    value={manualForm.checkInTime}
-                    onChange={(e) => setManualForm({ ...manualForm, checkInTime: e.target.value })}
-                    className="bg-[#111418] border border-[#3b4754] text-white rounded-lg px-3 py-2.5 focus:border-[#137fec] outline-none transition-all"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-semibold text-[#9dabb9]">Check Out</label>
-                  <input
-                    type="time"
-                    required
-                    value={manualForm.checkOutTime}
-                    onChange={(e) => setManualForm({ ...manualForm, checkOutTime: e.target.value })}
-                    className="bg-[#111418] border border-[#3b4754] text-white rounded-lg px-3 py-2.5 focus:border-[#137fec] outline-none transition-all"
-                  />
-                </div>
+                <ModernTimePicker
+                  label="Check In"
+                  required
+                  value={manualForm.checkInTime}
+                  onChange={(val) => setManualForm(prev => ({ ...prev, checkInTime: val }))}
+                />
+                <ModernTimePicker
+                  label="Check Out"
+                  required
+                  value={manualForm.checkOutTime}
+                  onChange={(val) => setManualForm(prev => ({ ...prev, checkOutTime: val }))}
+                />
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-semibold text-[#9dabb9]">Notes</label>
+                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider ml-1">Notes</label>
                 <textarea
                   rows={3}
                   value={manualForm.notes}
                   onChange={(e) => setManualForm({ ...manualForm, notes: e.target.value })}
                   placeholder="Reason for manual entry..."
-                  className="bg-[#111418] border border-[#3b4754] text-white rounded-lg px-3 py-2.5 focus:border-[#137fec] outline-none transition-all resize-none"
+                  className="bg-[#111418] border border-[#3b4754] text-white rounded-xl px-4 py-3 focus:border-[#137fec] outline-none transition-all resize-none"
                 />
               </div>
 
@@ -592,47 +592,44 @@ const MonthlyAttendanceReport: React.FC = () => {
 
             <form onSubmit={handleEditSubmit} className="p-6 flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-semibold text-[#9dabb9]">Date</label>
-                <input
-                  type="date"
-                  required
-                  value={editForm.date}
-                  onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
-                  className="bg-[#111418] border border-[#3b4754] text-white rounded-lg px-3 py-2.5 focus:border-[#137fec] outline-none transition-all"
-                />
+                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider ml-1">Date <span className="text-red-500">*</span></label>
+                <div className="relative group">
+                  <input
+                    type="date"
+                    required
+                    value={editForm.date}
+                    onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
+                    className="w-full bg-[#111418] border border-[#3b4754] text-white rounded-xl px-4 py-3 pl-11 focus:border-[#137fec] outline-none transition-all cursor-pointer group-hover:border-[#137fec]/50"
+                    onClick={(e) => { try { e.currentTarget.showPicker() } catch { } }}
+                    style={{ colorScheme: 'dark' }}
+                  />
+                  <Calendar className="absolute left-3.5 top-3.5 text-gray-500 group-hover:text-[#137fec] transition-colors pointer-events-none" size={18} />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-semibold text-[#9dabb9]">Check In</label>
-                  <input
-                    type="time"
-                    required
-                    value={editForm.checkInTime}
-                    onChange={(e) => setEditForm({ ...editForm, checkInTime: e.target.value })}
-                    className="bg-[#111418] border border-[#3b4754] text-white rounded-lg px-3 py-2.5 focus:border-[#137fec] outline-none transition-all"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-semibold text-[#9dabb9]">Check Out</label>
-                  <input
-                    type="time"
-                    required
-                    value={editForm.checkOutTime}
-                    onChange={(e) => setEditForm({ ...editForm, checkOutTime: e.target.value })}
-                    className="bg-[#111418] border border-[#3b4754] text-white rounded-lg px-3 py-2.5 focus:border-[#137fec] outline-none transition-all"
-                  />
-                </div>
+                <ModernTimePicker
+                  label="Check In"
+                  required
+                  value={editForm.checkInTime}
+                  onChange={(val) => setEditForm(prev => ({ ...prev, checkInTime: val }))}
+                />
+                <ModernTimePicker
+                  label="Check Out"
+                  required
+                  value={editForm.checkOutTime}
+                  onChange={(val) => setEditForm(prev => ({ ...prev, checkOutTime: val }))}
+                />
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-semibold text-[#9dabb9]">Notes</label>
+                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider ml-1">Notes</label>
                 <textarea
                   rows={3}
                   value={editForm.notes}
                   onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
                   placeholder="Reason for manual entry..."
-                  className="bg-[#111418] border border-[#3b4754] text-white rounded-lg px-3 py-2.5 focus:border-[#137fec] outline-none transition-all resize-none"
+                  className="bg-[#111418] border border-[#3b4754] text-white rounded-xl px-4 py-3 focus:border-[#137fec] outline-none transition-all resize-none"
                 />
               </div>
 
