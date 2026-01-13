@@ -66,10 +66,10 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
     const record = await Attendance.findOne({ _id: params.id, userId: payload.userId });
     if (!record) return NextResponse.json({ message: 'Record not found' }, { status: 404 });
 
-    // Only allow editing manual records to avoid tampering with automatic check-ins.
-    if (!record.isManual) {
-      return NextResponse.json({ message: 'Only manual records can be edited' }, { status: 403 });
-    }
+    // Constraint removed to allow editing all records per user request
+    // if (!record.isManual) {
+    //   return NextResponse.json({ message: 'Only manual records can be edited' }, { status: 403 });
+    // }
 
     const tzOffset = Number.isFinite(tzOffsetMinutes) ? Number(tzOffsetMinutes) : undefined;
     const checkInDate = buildDateTime(date, checkInTime, tzOffset);
@@ -111,9 +111,10 @@ export async function DELETE(_req: Request, props: { params: Promise<{ id: strin
     const record = await Attendance.findOne({ _id: params.id, userId: payload.userId });
     if (!record) return NextResponse.json({ message: 'Record not found' }, { status: 404 });
 
-    if (!record.isManual) {
-      return NextResponse.json({ message: 'Only manual records can be deleted' }, { status: 403 });
-    }
+    // Constraint removed to allow deleting all records per user request
+    // if (!record.isManual) {
+    //   return NextResponse.json({ message: 'Only manual records can be deleted' }, { status: 403 });
+    // }
 
     await Attendance.deleteOne({ _id: params.id, userId: payload.userId });
 

@@ -417,33 +417,29 @@ const MonthlyAttendanceReport: React.FC = () => {
                                 </span>
                               </td>
                               <td className="py-4 px-6 text-right">
-                                {record.isManual ? (
-                                  <div className="flex justify-end gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-                                    <button
-                                      type="button"
-                                      onClick={() => openEditModal(record)}
-                                      className="inline-flex items-center justify-center rounded-lg border border-[#3b4754] bg-[#111418] hover:bg-[#2d3642] text-white w-9 h-9 transition-colors"
-                                      title="Edit manual entry"
-                                    >
-                                      <Pencil size={16} />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setDeleteConfirmRecord(record)}
-                                      disabled={deleteLoadingId === record._id}
-                                      className="inline-flex items-center justify-center rounded-lg border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-300 w-9 h-9 transition-colors disabled:opacity-60"
-                                      title="Delete manual entry"
-                                    >
-                                      {deleteLoadingId === record._id ? (
-                                        <Loader2 className="animate-spin" size={16} />
-                                      ) : (
-                                        <Trash2 size={16} />
-                                      )}
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <span className="text-[#637588] text-sm">-</span>
-                                )}
+                                <div className="flex justify-end gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                                  <button
+                                    type="button"
+                                    onClick={() => openEditModal(record)}
+                                    className="inline-flex items-center justify-center rounded-lg border border-[#3b4754] bg-[#111418] hover:bg-[#2d3642] text-white w-9 h-9 transition-colors"
+                                    title="Edit entry"
+                                  >
+                                    <Pencil size={16} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDeleteConfirmRecord(record)}
+                                    disabled={deleteLoadingId === record._id}
+                                    className="inline-flex items-center justify-center rounded-lg border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-300 w-9 h-9 transition-colors disabled:opacity-60"
+                                    title="Delete entry"
+                                  >
+                                    {deleteLoadingId === record._id ? (
+                                      <Loader2 className="animate-spin" size={16} />
+                                    ) : (
+                                      <Trash2 size={16} />
+                                    )}
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );
@@ -581,7 +577,7 @@ const MonthlyAttendanceReport: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm reports-datetime-white-icons">
           <div className="bg-[#1c2127] border border-[#3b4754] rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-[#3b4754] bg-[#20262e]">
-              <h3 className="text-white font-bold text-lg">Edit Manual Attendance</h3>
+              <h3 className="text-white font-bold text-lg">Edit Attendance</h3>
               <button
                 onClick={() => setIsEditModalOpen(false)}
                 className="text-[#9dabb9] hover:text-white transition-colors"
@@ -628,7 +624,7 @@ const MonthlyAttendanceReport: React.FC = () => {
                   rows={3}
                   value={editForm.notes}
                   onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
-                  placeholder="Reason for manual entry..."
+                  placeholder="Reason for entry..."
                   className="bg-[#111418] border border-[#3b4754] text-white rounded-xl px-4 py-3 focus:border-[#137fec] outline-none transition-all resize-none"
                 />
               </div>
@@ -659,7 +655,7 @@ const MonthlyAttendanceReport: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-[#1c2127] border border-[#3b4754] rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-[#3b4754] bg-[#20262e]">
-              <h3 className="text-white font-bold text-lg">Delete Manual Entry</h3>
+              <h3 className="text-white font-bold text-lg">Delete Entry</h3>
               <button
                 onClick={() => setDeleteConfirmRecord(null)}
                 className="text-[#9dabb9] hover:text-white transition-colors"
@@ -670,7 +666,7 @@ const MonthlyAttendanceReport: React.FC = () => {
 
             <div className="p-6">
               <p className="text-[#cfd8e3] text-sm">
-                This will permanently delete the selected manual attendance entry. This action cannot be undone.
+                This will permanently delete the selected attendance entry. This action cannot be undone.
               </p>
 
               <div className="flex gap-3 mt-6">
