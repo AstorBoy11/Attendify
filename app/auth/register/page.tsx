@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { ArrowBigLeft, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -31,10 +32,14 @@ const RegisterPage = () => {
     setLoading(true);
 
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
+      const msg = "Passwords do not match";
+      setError(msg);
+      toast.error(msg);
       setLoading(false);
       return;
     }
+
+    const toastId = toast.loading("Creating account...");
 
     try {
       const res = await fetch('/api/auth/register', {
@@ -53,11 +58,15 @@ const RegisterPage = () => {
         throw new Error(data.message || 'Registration failed');
       }
 
+      toast.success("Account created! Redirecting to login...", { id: toastId });
       // Redirect to login page on success
-      router.push('/auth/login');
+      setTimeout(() => {
+        router.push('/auth/login');
+      }, 1000);
+
     } catch (err: any) {
       setError(err.message);
-    } finally {
+      toast.error(err.message, { id: toastId });
       setLoading(false);
     }
   };
@@ -83,12 +92,7 @@ const RegisterPage = () => {
               <p className="text-[#617589] dark:text-[#9AAAB8] text-sm">Create your account to get started.</p>
             </div>
 
-            {/* Error Message */}
-            {error && (
-              <div className="mb-4 p-3 rounded-lg bg-red-100 border border-red-200 text-red-700 text-sm dark:bg-red-900/30 dark:border-red-800 dark:text-red-400">
-                {error}
-              </div>
-            )}
+            {/* Error Message - OPTIONAL */}
 
             {/* Register Form */}
             <form className="flex flex-col gap-4 sm:gap-5" onSubmit={handleSubmit}>

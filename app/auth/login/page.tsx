@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { ArrowBigLeft, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -27,6 +28,7 @@ const LoginPage = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
+    const toastId = toast.loading("Signing in...");
 
     try {
       const res = await fetch('/api/auth/login', {
@@ -41,10 +43,12 @@ const LoginPage = () => {
         throw new Error(data.message || 'Login failed');
       }
 
+      toast.success("Login successful! Redirecting...", { id: toastId });
       // Force a hard refresh/navigation to ensure cookies are picked up
       window.location.href = '/dashboard';
     } catch (err: any) {
       setError(err.message);
+      toast.error(err.message, { id: toastId });
       setLoading(false);
     }
   };
@@ -70,12 +74,7 @@ const LoginPage = () => {
               <p className="text-[#617589] dark:text-[#9AAAB8] text-sm">Welcome back! Please sign in to your account.</p>
             </div>
 
-            {/* Error Message */}
-            {error && (
-              <div className="mb-4 p-3 rounded-lg bg-red-100 border border-red-200 text-red-700 text-sm dark:bg-red-900/30 dark:border-red-800 dark:text-red-400">
-                {error}
-              </div>
-            )}
+            {/* Error Message - OPTIONAL: Can keep or remove if toast is sufficient. Keeping it for persistent error visibility might be good, but user asked for the "toast style". Let's rely on toast. */}
 
             {/* Login Form */}
             <form className="flex flex-col gap-4 sm:gap-5" onSubmit={handleSubmit}>
