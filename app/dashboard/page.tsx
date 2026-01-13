@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import MonthSummaryCard from '@/components/MonthSummaryCard';
 import { Loader2 } from "lucide-react";
 import { useRouter } from 'next/navigation';
+import { toast } from "sonner";
 
 interface RecentActivity {
   _id: string;
@@ -87,34 +88,38 @@ const AttendifyDashboard: React.FC = () => {
   }, []);
 
   const handleCheckIn = async () => {
+    const toastId = toast.loading("Processing Check In...");
     try {
       setActionLoading('checkIn');
       const res = await fetch('/api/attendance/check-in', { method: 'POST' });
       if (!res.ok) {
         const err = await res.json();
-        alert(err.message);
+        toast.error(err.message, { id: toastId });
       } else {
+        toast.success("Check In Successful!", { id: toastId });
         await fetchStats();
       }
     } catch (error) {
-      alert("Check-in failed");
+      toast.error("Check-in failed", { id: toastId });
     } finally {
       setActionLoading(null);
     }
   };
 
   const handleCheckOut = async () => {
+    const toastId = toast.loading("Processing Check Out...");
     try {
       setActionLoading('checkOut');
       const res = await fetch('/api/attendance/check-out', { method: 'POST' });
       if (!res.ok) {
         const err = await res.json();
-        alert(err.message);
+        toast.error(err.message, { id: toastId });
       } else {
+        toast.success("Check Out Successful!", { id: toastId });
         await fetchStats();
       }
     } catch (error) {
-      alert("Check-out failed");
+      toast.error("Check-out failed", { id: toastId });
     } finally {
       setActionLoading(null);
     }

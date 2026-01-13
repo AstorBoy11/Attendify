@@ -14,6 +14,7 @@ import {
   Upload,
   Image as ImageIcon
 } from "lucide-react";
+import { toast } from "sonner";
 
 interface UserProfile {
   name: string;
@@ -97,6 +98,7 @@ const ProfilePage = () => {
     e.preventDefault();
     setIsSaving(true);
     setErrorMessage("");
+    const toastId = toast.loading("Updating profile...");
 
     try {
       const res = await fetch('/api/user/profile', {
@@ -122,11 +124,12 @@ const ProfilePage = () => {
         avatar: data.user.avatar || prev.avatar,
       }));
 
+      toast.success("Profile updated successfully!", { id: toastId });
       setIsEditing(false);
-      // alert("Profile updated successfully!"); // Optional: immediate feedback
     } catch (error: any) {
       console.error("Update failed", error);
       setErrorMessage(error.message);
+      toast.error(error.message || "Failed to update profile", { id: toastId });
     } finally {
       setIsSaving(false);
     }
@@ -145,6 +148,8 @@ const ProfilePage = () => {
     // if (file.size > 5 * 1024 * 1024) return alert("File too large");
 
     setIsUploading(true);
+    const toastId = toast.loading("Uploading image...");
+
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -158,10 +163,11 @@ const ProfilePage = () => {
 
       const data = await res.json();
       setPreviewImage(data.url); // Set the returned URL as preview
+      toast.success("Image uploaded", { id: toastId });
 
     } catch (error) {
       console.error("Upload error", error);
-      alert("Failed to upload image");
+      toast.error("Failed to upload image", { id: toastId });
     } finally {
       setIsUploading(false);
     }

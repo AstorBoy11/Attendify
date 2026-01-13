@@ -4,6 +4,7 @@ import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const TargetConfiguration: React.FC = () => {
     const router = useRouter();
@@ -54,6 +55,7 @@ const TargetConfiguration: React.FC = () => {
 
     const handleSave = async () => {
         setSaving(true);
+        const toastId = toast.loading("Saving configuration...");
         try {
             const res = await fetch('/api/settings/target', {
                 method: 'POST',
@@ -62,12 +64,12 @@ const TargetConfiguration: React.FC = () => {
             });
 
             if (res.ok) {
-                alert("Settings saved successfully!");
+                toast.success("Settings saved successfully!", { id: toastId });
             } else {
-                alert("Failed to save settings");
+                toast.error("Failed to save settings", { id: toastId });
             }
         } catch (error) {
-            alert("Error saving settings");
+            toast.error("Error saving settings", { id: toastId });
         } finally {
             setSaving(false);
         }

@@ -5,7 +5,9 @@ import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import { Calendar, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import ModernTimePicker from '@/components/ui/ModernTimePicker';
+import { DateTimePicker } from '@/components/ui/date-time-picker';
+import { format } from 'date-fns';
+import { toast } from "sonner";
 
 interface AttendanceRecord {
   _id: string;
@@ -42,10 +44,13 @@ const MonthlyAttendanceReport: React.FC = () => {
   // Manual Entry State
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [manualLoading, setManualLoading] = useState(false);
-  const [manualForm, setManualForm] = useState({
-    date: new Date().toISOString().split('T')[0],
-    checkInTime: '09:00',
-    checkOutTime: '17:00',
+  const [manualForm, setManualForm] = useState<{
+    checkIn: Date | undefined;
+    checkOut: Date | undefined;
+    notes: string;
+  }>({
+    checkIn: new Date(new Date().setHours(9, 0, 0, 0)),
+    checkOut: new Date(new Date().setHours(17, 0, 0, 0)),
     notes: ''
   });
 
@@ -53,10 +58,13 @@ const MonthlyAttendanceReport: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
   const [editRecordId, setEditRecordId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({
-    date: new Date().toISOString().split('T')[0],
-    checkInTime: '09:00',
-    checkOutTime: '17:00',
+  const [editForm, setEditForm] = useState<{
+    checkIn: Date | undefined;
+    checkOut: Date | undefined;
+    notes: string;
+  }>({
+    checkIn: new Date(),
+    checkOut: new Date(),
     notes: ''
   });
   const [deleteConfirmRecord, setDeleteConfirmRecord] = useState<AttendanceRecord | null>(null);
@@ -160,27 +168,32 @@ const MonthlyAttendanceReport: React.FC = () => {
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setManualLoading(true);
+    const toastId = toast.loading("Adding manual entry...");
     try {
       const res = await fetch('/api/attendance/manual', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...manualForm,
+          date: manualForm.checkIn ? format(manualForm.checkIn, 'yyyy-MM-dd') : '',
+          checkInTime: manualForm.checkIn ? format(manualForm.checkIn, 'HH:mm') : '',
+          checkOutTime: manualForm.checkOut ? format(manualForm.checkOut, 'HH:mm') : '',
+          notes: manualForm.notes,
           tzOffsetMinutes: new Date().getTimezoneOffset(),
         })
       });
 
       if (!res.ok) {
         const data = await res.json();
-        alert(data.message || "Failed to add entry");
+        toast.error(data.message || "Failed to add entry", { id: toastId });
         return;
       }
 
+      toast.success("Manual entry added successfully", { id: toastId });
       setIsManualModalOpen(false);
       fetchData(); // Refresh list
     } catch (error) {
       console.error(error);
-      alert("Error adding entry");
+      toast.error("Error adding entry", { id: toastId });
     } finally {
       setManualLoading(false);
     }
@@ -263,10 +276,18 @@ const MonthlyAttendanceReport: React.FC = () => {
     }
 
     setEditRecordId(id);
+    // Parse existing strings to Date objects
+    const [y, m, d] = record.checkIn.split('T')[0].split('-').map(Number);
+
+    const checkInDate = new Date(record.checkIn);
+    const checkOutDate = record.checkOut ? new Date(record.checkOut) : new Date(record.checkIn);
+    if (!record.checkOut) {
+      checkOutDate.setHours(17, 0, 0, 0); // Default if missing
+    }
+
     setEditForm({
-      date: toDateInputValue(record.checkIn),
-      checkInTime: toTimeInputValue(record.checkIn),
-      checkOutTime: record.checkOut ? toTimeInputValue(record.checkOut) : '17:00',
+      checkIn: checkInDate,
+      checkOut: checkOutDate,
       notes: record.notes || ''
     });
     setIsEditModalOpen(true);
@@ -276,28 +297,33 @@ const MonthlyAttendanceReport: React.FC = () => {
     e.preventDefault();
     if (!editRecordId) return;
     setEditLoading(true);
+    const toastId = toast.loading("Updating entry...");
     try {
       const res = await fetch(`/api/attendance/record/${editRecordId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...editForm,
+          date: editForm.checkIn ? format(editForm.checkIn, 'yyyy-MM-dd') : '',
+          checkInTime: editForm.checkIn ? format(editForm.checkIn, 'HH:mm') : '',
+          checkOutTime: editForm.checkOut ? format(editForm.checkOut, 'HH:mm') : '',
+          notes: editForm.notes,
           tzOffsetMinutes: new Date().getTimezoneOffset(),
         })
       });
 
       if (!res.ok) {
         const data = await res.json();
-        alert(data.message || 'Failed to update entry');
+        toast.error(data.message || 'Failed to update entry', { id: toastId });
         return;
       }
 
+      toast.success("Entry updated successfully", { id: toastId });
       setIsEditModalOpen(false);
       setEditRecordId(null);
       fetchData();
     } catch (error) {
       console.error(error);
-      alert('Error updating entry');
+      toast.error('Error updating entry', { id: toastId });
     } finally {
       setEditLoading(false);
     }
@@ -306,23 +332,25 @@ const MonthlyAttendanceReport: React.FC = () => {
   const handleDelete = async (record: AttendanceRecord) => {
     const id = normalizeRecordId(record._id);
     if (!id) {
-      alert('Invalid record id');
+      toast.error('Invalid record id');
       return;
     }
 
     setDeleteLoadingId(id);
+    const toastId = toast.loading("Deleting entry...");
     try {
       const res = await fetch(`/api/attendance/record/${id}`, { method: 'DELETE' });
       if (!res.ok) {
         const data = await res.json();
-        alert(data.message || 'Failed to delete entry');
+        toast.error(data.message || 'Failed to delete entry', { id: toastId });
         return;
       }
+      toast.success("Entry deleted successfully", { id: toastId });
       setDeleteConfirmRecord(null);
       fetchData();
     } catch (error) {
       console.error(error);
-      alert('Error deleting entry');
+      toast.error('Error deleting entry', { id: toastId });
     } finally {
       setDeleteLoadingId(null);
     }
@@ -589,7 +617,7 @@ const MonthlyAttendanceReport: React.FC = () => {
       {/* Manual Entry Modal */}
       {isManualModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm reports-datetime-white-icons">
-          <div className="bg-[#1c2127] border border-[#3b4754] rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
+          <div className="bg-[#1c2127] border border-[#3b4754] rounded-xl w-full max-w-2xl shadow-2xl overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-[#3b4754] bg-[#20262e]">
               <h3 className="text-white font-bold text-lg">Add Manual Attendance</h3>
               <button
@@ -601,35 +629,25 @@ const MonthlyAttendanceReport: React.FC = () => {
             </div>
 
             <form onSubmit={handleManualSubmit} className="p-6 flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider ml-1">Date <span className="text-red-500">*</span></label>
-                <div className="relative group">
-                  <input
-                    type="date"
-                    required
-                    value={manualForm.date}
-                    onChange={(e) => setManualForm({ ...manualForm, date: e.target.value })}
-                    className="w-full bg-[#111418] border border-[#3b4754] text-white rounded-xl px-4 py-3 pl-11 focus:border-[#137fec] outline-none transition-all cursor-pointer group-hover:border-[#137fec]/50"
-                    onClick={(e) => { try { e.currentTarget.showPicker() } catch { } }}
-                    style={{ colorScheme: 'dark' }}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex flex-col gap-2">
+                  <label className="text-white text-xs font-semibold uppercase tracking-wider ml-1">Check In</label>
+                  <DateTimePicker
+                    value={manualForm.checkIn}
+                    onChange={(date) => setManualForm(prev => ({ ...prev, checkIn: date }))}
+                    className="w-full bg-[#111418] border-[#3b4754] text-white hover:bg-[#161b22] hover:text-white"
+                    displayFormat={{ hour24: "PPP HH:mm" }}
                   />
-                  <Calendar className="absolute left-3.5 top-3.5 text-gray-500 group-hover:text-[#137fec] transition-colors pointer-events-none" size={18} />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <ModernTimePicker
-                  label="Check In"
-                  required
-                  value={manualForm.checkInTime}
-                  onChange={(val) => setManualForm(prev => ({ ...prev, checkInTime: val }))}
-                />
-                <ModernTimePicker
-                  label="Check Out"
-                  required
-                  value={manualForm.checkOutTime}
-                  onChange={(val) => setManualForm(prev => ({ ...prev, checkOutTime: val }))}
-                />
+                <div className="flex flex-col gap-2">
+                  <label className="text-white text-xs font-semibold uppercase tracking-wider ml-1">Check Out</label>
+                  <DateTimePicker
+                    value={manualForm.checkOut}
+                    onChange={(date) => setManualForm(prev => ({ ...prev, checkOut: date }))}
+                    className="w-full bg-[#111418] border-[#3b4754] text-white hover:bg-[#161b22] hover:text-white"
+                    displayFormat={{ hour24: "PPP HH:mm" }}
+                  />
+                </div>
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -672,7 +690,7 @@ const MonthlyAttendanceReport: React.FC = () => {
       {/* Edit Manual Entry Modal */}
       {isEditModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm reports-datetime-white-icons">
-          <div className="bg-[#1c2127] border border-[#3b4754] rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
+          <div className="bg-[#1c2127] border border-[#3b4754] rounded-xl w-full max-w-2xl shadow-2xl overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-[#3b4754] bg-[#20262e]">
               <h3 className="text-white font-bold text-lg">Edit Attendance</h3>
               <button
@@ -684,35 +702,25 @@ const MonthlyAttendanceReport: React.FC = () => {
             </div>
 
             <form onSubmit={handleEditSubmit} className="p-6 flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider ml-1">Date <span className="text-red-500">*</span></label>
-                <div className="relative group">
-                  <input
-                    type="date"
-                    required
-                    value={editForm.date}
-                    onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
-                    className="w-full bg-[#111418] border border-[#3b4754] text-white rounded-xl px-4 py-3 pl-11 focus:border-[#137fec] outline-none transition-all cursor-pointer group-hover:border-[#137fec]/50"
-                    onClick={(e) => { try { e.currentTarget.showPicker() } catch { } }}
-                    style={{ colorScheme: 'dark' }}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex flex-col gap-2">
+                  <label className="text-white text-xs font-semibold uppercase tracking-wider ml-1">Check In</label>
+                  <DateTimePicker
+                    value={editForm.checkIn}
+                    onChange={(date) => setEditForm(prev => ({ ...prev, checkIn: date }))}
+                    className="w-full bg-[#111418] border-[#3b4754] text-white hover:bg-[#161b22] hover:text-white"
+                    displayFormat={{ hour24: "PPP HH:mm" }}
                   />
-                  <Calendar className="absolute left-3.5 top-3.5 text-gray-500 group-hover:text-[#137fec] transition-colors pointer-events-none" size={18} />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <ModernTimePicker
-                  label="Check In"
-                  required
-                  value={editForm.checkInTime}
-                  onChange={(val) => setEditForm(prev => ({ ...prev, checkInTime: val }))}
-                />
-                <ModernTimePicker
-                  label="Check Out"
-                  required
-                  value={editForm.checkOutTime}
-                  onChange={(val) => setEditForm(prev => ({ ...prev, checkOutTime: val }))}
-                />
+                <div className="flex flex-col gap-2">
+                  <label className="text-white text-xs font-semibold uppercase tracking-wider ml-1">Check Out</label>
+                  <DateTimePicker
+                    value={editForm.checkOut}
+                    onChange={(date) => setEditForm(prev => ({ ...prev, checkOut: date }))}
+                    className="w-full bg-[#111418] border-[#3b4754] text-white hover:bg-[#161b22] hover:text-white"
+                    displayFormat={{ hour24: "PPP HH:mm" }}
+                  />
+                </div>
               </div>
 
               <div className="flex flex-col gap-1.5">
