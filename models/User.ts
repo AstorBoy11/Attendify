@@ -8,6 +8,8 @@ const UserSchema = new mongoose.Schema({
     yearlyTarget: { type: Number, default: 134880 }, // Default target
     dailyTarget: { type: Number, default: 480 }, // Default 8 hours
     avatar: { type: String, default: '' },
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date },
 }, { timestamps: true });
 
 export default mongoose.models.User || mongoose.model('User', UserSchema);

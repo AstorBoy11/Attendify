@@ -101,9 +101,9 @@ const LoginPage = () => {
                   <label className="text-[#111418] dark:text-white text-sm font-medium leading-normal" htmlFor="password">
                     Password
                   </label>
-                  <a className="text-[#137fec] text-sm font-medium hover:underline" href="#">
+                  <Link className="text-[#137fec] text-sm font-medium hover:underline" href="/auth/forgot-password">
                     Forgot password?
-                  </a>
+                  </Link>
                 </div>
                 <div className="relative flex w-full items-center rounded-lg">
                   <input
