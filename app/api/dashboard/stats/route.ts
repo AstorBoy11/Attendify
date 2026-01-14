@@ -144,7 +144,7 @@ export async function GET(req: Request) {
             // If they input 11240, and days are 26, it's 432.
             // If they strictly want 480, they must input a higher monthly target (12480).
             // We implement the strict math as requested: "daily target can adjust based on input given".
-            const dailyTarget = workingDaysCount > 0 ? Math.round(monthlyTargetBase / workingDaysCount) : 0;
+            const dailyTarget = user.dailyTarget || 480;
 
             console.log("[Stats API] Stats gathered successfully. Working days:", workingDaysCount, "Daily Target:", dailyTarget);
 
@@ -162,7 +162,7 @@ export async function GET(req: Request) {
             currentMinutes,
             yearlyMinutes,
             recentActivity,
-            dailyTargetMinutes: workingDaysCount > 0 ? Math.round((user.monthlyTargetBase || 11240) / workingDaysCount) : 0,
+            dailyTargetMinutes: user.dailyTarget || 480,
             monthlyTargetMinutes: dynamicMonthlyTarget,
             yearlyTargetMinutes: user.yearlyTarget || 134880
         });
