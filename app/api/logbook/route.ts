@@ -63,8 +63,8 @@ export async function GET(req: Request) {
     }
 }
 
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
+// fs imports removed
+
 
 export async function POST(req: Request) {
     try {
@@ -93,26 +93,12 @@ export async function POST(req: Request) {
             const bytes = await file.arrayBuffer();
             const buffer = Buffer.from(bytes);
 
-            // Create unique filename
-            const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-            const originalName = file.name.replace(/[^a-zA-Z0-9.]/g, '-');
-            const filename = `${uniqueSuffix}-${originalName}`;
+            // Convert to Base64
+            const base64Data = buffer.toString('base64');
+            const mimeType = file.type || 'application/octet-stream';
 
-            // Ensure upload directory exists
-            const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-            try {
-                await mkdir(uploadDir, { recursive: true });
-            } catch (e) {
-                // ignore if exists
-            }
-
-            // Write file
-            const filepath = path.join(uploadDir, filename);
-            await writeFile(filepath, buffer);
-
-            attachmentUrl = `/uploads/${filename}`;
+            attachmentUrl = `data:${mimeType};base64,${base64Data}`;
             attachmentName = file.name;
-            console.log("POST: File saved to:", filepath, "URL:", attachmentUrl);
         } else {
             console.log("POST: No file received");
         }
@@ -187,26 +173,14 @@ export async function PUT(req: Request) {
             const bytes = await file.arrayBuffer();
             const buffer = Buffer.from(bytes);
 
-            // Create unique filename
-            const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-            const originalName = file.name.replace(/[^a-zA-Z0-9.]/g, '-');
-            const filename = `${uniqueSuffix}-${originalName}`;
+            // Convert to Base64
+            const base64Data = buffer.toString('base64');
+            const mimeType = file.type || 'application/octet-stream';
 
-            // Ensure upload directory exists
-            const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-            try {
-                await mkdir(uploadDir, { recursive: true });
-            } catch (e) {
-                // ignore if exists
-            }
-
-            // Write file
-            const filepath = path.join(uploadDir, filename);
-            await writeFile(filepath, buffer);
-
-            updateData.attachmentUrl = `/uploads/${filename}`;
+            updateData.attachmentUrl = `data:${mimeType};base64,${base64Data}`;
             updateData.attachmentName = file.name;
-            console.log("PUT: File saved/updated at:", filepath);
+            // updateData.attachmentData = base64Data; // Optional if we want raw base64 separately, but URL is enough
+
         }
 
         const updatedLog = await Logbook.findByIdAndUpdate(id, updateData, { new: true });
