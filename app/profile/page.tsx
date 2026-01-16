@@ -14,6 +14,7 @@ import {
   Upload,
   Image as ImageIcon
 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
 interface UserProfile {
@@ -220,54 +221,67 @@ const ProfilePage = () => {
 
               {/* Profile Picture Section */}
               <div className="flex flex-col items-center">
-                <div className="relative group">
-                  {/* Glow Effect */}
-                  <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-500"></div>
-                  <div className="relative size-32 rounded-full border-4 border-[#1a202c] overflow-hidden shadow-lg transition-transform duration-300 group-hover:scale-105">
-                    <img
-                      src={profile.avatar}
-                      alt="Profile"
-                      className="size-full object-cover bg-gray-800"
-                    />
-                  </div>
-                </div>
-
-                {/* Name & Role */}
-                <div className="mt-5 text-center space-y-1">
-                  <h1 className="text-2xl font-bold tracking-tight text-white">
-                    {profile.name || 'Loading...'}
-                  </h1>
-                </div>
-
-                {/* Interactive Email Card */}
-                <button
-                  onClick={handleCopyEmail}
-                  className="group w-full mt-8 flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all active:scale-[0.98]"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20 transition-colors">
-                      <Mail className="w-5 h-5" />
+                {!profile.name ? (
+                  <div className="flex flex-col items-center w-full">
+                    <Skeleton className="size-32 rounded-full bg-[#283039]" />
+                    <div className="mt-5 text-center space-y-1 w-full flex flex-col items-center">
+                      <Skeleton className="h-8 w-48 bg-[#283039]" />
                     </div>
-                    <div className="text-left">
-                      <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">
-                        Email Address
-                      </p>
-                      <p className="text-sm text-gray-200 truncate font-medium">
-                        {profile.email || 'Loading...'}
-                      </p>
-                    </div>
+                    <Skeleton className="h-14 w-full mt-8 rounded-xl bg-[#283039]" />
+                    <Skeleton className="h-12 w-full mt-4 rounded-xl bg-[#283039]" />
                   </div>
-                  {copied ? <span className="text-xs text-green-400 font-bold">Copied!</span> : null}
-                </button>
+                ) : (
+                  <>
+                    <div className="relative group">
+                      {/* Glow Effect */}
+                      <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-500"></div>
+                      <div className="relative size-32 rounded-full border-4 border-[#1a202c] overflow-hidden shadow-lg transition-transform duration-300 group-hover:scale-105">
+                        <img
+                          src={profile.avatar}
+                          alt="Profile"
+                          className="size-full object-cover bg-gray-800"
+                        />
+                      </div>
+                    </div>
 
-                {/* Edit Button */}
-                <button
-                  onClick={openEditModal}
-                  className="w-full mt-4 h-12 rounded-xl bg-gradient-to-r from-[#137fec] to-[#3b82f6] hover:from-[#1170d2] hover:to-[#2563eb] text-white font-bold shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transform hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-2"
-                >
-                  <Pencil className="w-4 h-4" />
-                  <span>Edit Profile</span>
-                </button>
+                    {/* Name & Role */}
+                    <div className="mt-5 text-center space-y-1">
+                      <h1 className="text-2xl font-bold tracking-tight text-white">
+                        {profile.name}
+                      </h1>
+                    </div>
+
+                    {/* Interactive Email Card */}
+                    <button
+                      onClick={handleCopyEmail}
+                      className="group w-full mt-8 flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all active:scale-[0.98]"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20 transition-colors">
+                          <Mail className="w-5 h-5" />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">
+                            Email Address
+                          </p>
+                          <p className="text-sm text-gray-200 truncate font-medium">
+                            {profile.email}
+                          </p>
+                        </div>
+                      </div>
+                      {copied ? <span className="text-xs text-green-400 font-bold">Copied!</span> : null}
+                    </button>
+
+                    {/* Edit Button */}
+                    <button
+                      onClick={openEditModal}
+                      className="w-full mt-4 h-12 rounded-xl bg-gradient-to-r from-[#137fec] to-[#3b82f6] hover:from-[#1170d2] hover:to-[#2563eb] text-white font-bold shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transform hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-2"
+                    >
+                      <Pencil className="w-4 h-4" />
+                      <span>Edit Profile</span>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>

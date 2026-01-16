@@ -4,6 +4,7 @@ import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from 'sonner';
 
 const TargetConfiguration: React.FC = () => {
@@ -112,45 +113,62 @@ const TargetConfiguration: React.FC = () => {
 
                                     {/* Input Fields */}
                                     <div className="flex flex-col gap-5">
-                                        {/* Monthly Target */}
-                                        <label className="flex flex-col flex-1">
-                                            <p className="text-white text-base font-medium leading-normal pb-2">Monthly Target (minutes)</p>
-                                            <div className="relative">
-                                                <input
-                                                    className="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-white focus:outline-0 focus:ring-2 focus:ring-[#137fec]/50 border border-[#3b4754] bg-[#1c2127] focus:border-[#137fec] h-14 placeholder:text-[#9dabb9] p-3.75 pl-12 text-base font-normal leading-normal transition-all"
-                                                    type="number"
-                                                    value={settings.monthlyTargetBase}
-                                                    onChange={(e) => setSettings({ ...settings, monthlyTargetBase: parseInt(e.target.value) || 0 })}
-                                                    disabled={loading}
-                                                />
-                                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9dabb9]">
-                                                    <span className="material-symbols-outlined text-[20px]">calendar_month</span>
+                                        {loading ? (
+                                            <>
+                                                <div className="space-y-2">
+                                                    <Skeleton className="h-5 w-40 bg-[#283039]" />
+                                                    <Skeleton className="h-14 w-full rounded-lg bg-[#283039]" />
+                                                    <Skeleton className="h-4 w-32 bg-[#283039]" />
                                                 </div>
-                                            </div>
-                                            <p className="text-[#9dabb9] text-xs pt-1.5 pl-1">
-                                                Default: 11,240 minutes.
-                                            </p>
-                                        </label>
+                                                <div className="space-y-2">
+                                                    <Skeleton className="h-5 w-40 bg-[#283039]" />
+                                                    <Skeleton className="h-14 w-full rounded-lg bg-[#283039]" />
+                                                    <Skeleton className="h-4 w-32 bg-[#283039]" />
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                {/* Monthly Target */}
+                                                <label className="flex flex-col flex-1">
+                                                    <p className="text-white text-base font-medium leading-normal pb-2">Monthly Target (minutes)</p>
+                                                    <div className="relative">
+                                                        <input
+                                                            className="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-white focus:outline-0 focus:ring-2 focus:ring-[#137fec]/50 border border-[#3b4754] bg-[#1c2127] focus:border-[#137fec] h-14 placeholder:text-[#9dabb9] p-3.75 pl-12 text-base font-normal leading-normal transition-all"
+                                                            type="number"
+                                                            value={settings.monthlyTargetBase}
+                                                            onChange={(e) => setSettings({ ...settings, monthlyTargetBase: parseInt(e.target.value) || 0 })}
+                                                            disabled={loading}
+                                                        />
+                                                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9dabb9]">
+                                                            <span className="material-symbols-outlined text-[20px]">calendar_month</span>
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-[#9dabb9] text-xs pt-1.5 pl-1">
+                                                        Default: 11,240 minutes.
+                                                    </p>
+                                                </label>
 
-                                        {/* Daily Target */}
-                                        <label className="flex flex-col flex-1">
-                                            <p className="text-white text-base font-medium leading-normal pb-2">Daily Target (minutes)</p>
-                                            <div className="relative">
-                                                <input
-                                                    className="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-white focus:outline-0 focus:ring-2 focus:ring-[#137fec]/50 border border-[#3b4754] bg-[#1c2127] focus:border-[#137fec] h-14 placeholder:text-[#9dabb9] p-3.75 pl-12 text-base font-normal leading-normal transition-all"
-                                                    type="number"
-                                                    value={settings.dailyTarget}
-                                                    onChange={(e) => setSettings({ ...settings, dailyTarget: parseInt(e.target.value) || 0 })}
-                                                    disabled={loading}
-                                                />
-                                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9dabb9]">
-                                                    <span className="material-symbols-outlined text-[20px]">schedule</span>
-                                                </div>
-                                            </div>
-                                            <p className="text-[#9dabb9] text-xs pt-1.5 pl-1">
-                                                Default: 480 minutes (8 hours).
-                                            </p>
-                                        </label>
+                                                {/* Daily Target */}
+                                                <label className="flex flex-col flex-1">
+                                                    <p className="text-white text-base font-medium leading-normal pb-2">Daily Target (minutes)</p>
+                                                    <div className="relative">
+                                                        <input
+                                                            className="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-white focus:outline-0 focus:ring-2 focus:ring-[#137fec]/50 border border-[#3b4754] bg-[#1c2127] focus:border-[#137fec] h-14 placeholder:text-[#9dabb9] p-3.75 pl-12 text-base font-normal leading-normal transition-all"
+                                                            type="number"
+                                                            value={settings.dailyTarget}
+                                                            onChange={(e) => setSettings({ ...settings, dailyTarget: parseInt(e.target.value) || 0 })}
+                                                            disabled={loading}
+                                                        />
+                                                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9dabb9]">
+                                                            <span className="material-symbols-outlined text-[20px]">schedule</span>
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-[#9dabb9] text-xs pt-1.5 pl-1">
+                                                        Default: 480 minutes (8 hours).
+                                                    </p>
+                                                </label>
+                                            </>
+                                        )}
                                     </div>
 
                                     {/* Helper Text */}
@@ -163,20 +181,24 @@ const TargetConfiguration: React.FC = () => {
 
                                     {/* Action Button */}
                                     <div className="pt-2">
-                                        <button
-                                            onClick={handleSave}
-                                            disabled={saving || loading}
-                                            className="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-[#137fec] hover:bg-blue-600 text-white text-base font-bold leading-normal tracking-[0.015em] transition-colors shadow-lg shadow-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            <span className="truncate flex items-center justify-center gap-2">
-                                                {saving ? (
-                                                    <>
-                                                        <Loader2 className="animate-spin size-5" />
-                                                        Saving...
-                                                    </>
-                                                ) : "Save Configuration"}
-                                            </span>
-                                        </button>
+                                        {loading ? (
+                                            <Skeleton className="h-12 w-full rounded-lg bg-[#283039]" />
+                                        ) : (
+                                            <button
+                                                onClick={handleSave}
+                                                disabled={saving || loading}
+                                                className="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-[#137fec] hover:bg-blue-600 text-white text-base font-bold leading-normal tracking-[0.015em] transition-colors shadow-lg shadow-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                <span className="truncate flex items-center justify-center gap-2">
+                                                    {saving ? (
+                                                        <>
+                                                            <Loader2 className="animate-spin size-5" />
+                                                            Saving...
+                                                        </>
+                                                    ) : "Save Configuration"}
+                                                </span>
+                                            </button>
+                                        )}
                                     </div>
 
                                 </div>

@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import { Calendar, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
+import { Skeleton } from "@/components/ui/skeleton";
 import { format } from 'date-fns';
 import { toast } from "sonner";
 
@@ -499,7 +500,20 @@ const MonthlyAttendanceReport: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#2d3642]">
-                      {filteredRecords.length === 0 ? (
+                      {isLoading ? (
+                        // Skeleton Rows
+                        [1, 2, 3, 4, 5].map((i) => (
+                          <tr key={i}>
+                            <td className="py-4 px-6"><div className="space-y-2"><Skeleton className="h-4 w-24 bg-[#283039]" /><Skeleton className="h-3 w-16 bg-[#283039]" /></div></td>
+                            <td className="py-4 px-6"><Skeleton className="h-4 w-16 bg-[#283039]" /></td>
+                            <td className="py-4 px-6"><Skeleton className="h-4 w-16 bg-[#283039]" /></td>
+                            <td className="py-4 px-6"><Skeleton className="h-4 w-32 bg-[#283039]" /></td>
+                            <td className="py-4 px-6"><Skeleton className="h-4 w-16 ml-auto bg-[#283039]" /></td>
+                            <td className="py-4 px-6"><Skeleton className="h-6 w-20 mx-auto rounded-full bg-[#283039]" /></td>
+                            <td className="py-4 px-6"><div className="flex justify-end gap-2"><Skeleton className="h-9 w-9 rounded-lg bg-[#283039]" /><Skeleton className="h-9 w-9 rounded-lg bg-[#283039]" /></div></td>
+                          </tr>
+                        ))
+                      ) : filteredRecords.length === 0 ? (
                         <tr>
                           <td colSpan={7} className="py-8 text-center text-gray-500">No attendance records found for this period.</td>
                         </tr>

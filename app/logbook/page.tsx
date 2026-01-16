@@ -10,6 +10,7 @@ import { Loader2, Calendar as CalendarIcon, Upload, FileText, Download, X, Eye, 
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar } from "@/components/ui/calendar";
 import {
     Popover,
@@ -503,8 +504,18 @@ const LogbookPage = () => {
                                 </h2>
 
                                 {loadingLogs ? (
-                                    <div className="flex justify-center py-10">
-                                        <Loader2 className="animate-spin text-[#137fec] size-8" />
+                                    <div className="space-y-4">
+                                        {[1, 2, 3].map((i) => (
+                                            <div key={i} className="bg-[#1c2632] p-5 rounded-xl border border-[#283039]">
+                                                <div className="space-y-3">
+                                                    <Skeleton className="h-4 w-3/4 bg-[#283039]" />
+                                                    <Skeleton className="h-4 w-1/2 bg-[#283039]" />
+                                                </div>
+                                                <div className="mt-4 pt-4 border-t border-[#283039] flex items-center gap-3">
+                                                    <Skeleton className="h-6 w-20 bg-[#283039] rounded-md" />
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 ) : logs.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-[#283039] rounded-2xl bg-[#1c2632]/30">
@@ -621,12 +632,15 @@ const LogbookPage = () => {
                                             </thead>
                                             <tbody className="divide-y divide-[#283039]">
                                                 {loadingMonthly ? (
-                                                    <tr>
-                                                        <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
-                                                            <Loader2 className="animate-spin inline-block size-6 text-[#137fec]" />
-                                                            <span className="ml-2">Loading logs...</span>
-                                                        </td>
-                                                    </tr>
+                                                    // Skeleton rows for table
+                                                    [1, 2, 3, 4, 5].map((i) => (
+                                                        <tr key={i}>
+                                                            <td className="px-6 py-4"><Skeleton className="h-4 w-24 bg-[#283039]" /></td>
+                                                            <td className="px-6 py-4"><Skeleton className="h-4 w-full bg-[#283039]" /></td>
+                                                            <td className="px-6 py-4"><Skeleton className="h-8 w-8 rounded-lg bg-[#283039]" /></td>
+                                                            <td className="px-6 py-4"><div className="flex justify-end gap-2"><Skeleton className="h-8 w-8 rounded-lg bg-[#283039]" /><Skeleton className="h-8 w-8 rounded-lg bg-[#283039]" /></div></td>
+                                                        </tr>
+                                                    ))
                                                 ) : monthlyLogs.length === 0 ? (
                                                     <tr>
                                                         <td colSpan={4} className="px-6 py-8 text-center text-gray-500">

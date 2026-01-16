@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import MonthSummaryCard from '@/components/MonthSummaryCard';
 import DailyStatsCard from '@/components/DailyStatsCard';
 import { Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from 'next/navigation';
 import { toast } from "sonner";
 
@@ -132,12 +133,71 @@ const AttendifyDashboard: React.FC = () => {
 
   if (loading && !stats.userName) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-[#101922] text-white">
-        <Loader2 className="animate-spin size-10 text-[#137fec]" />
+      <div className="bg-[#101922] font-sans text-white antialiased min-h-screen">
+        <div className="relative flex min-h-screen flex-col overflow-hidden">
+          {/* Sidebar Skeleton (Mobile hidden, Desktop visible) */}
+          <div className="hidden lg:block fixed left-0 top-0 z-30 h-full w-72 border-r border-[#283039] bg-[#1c2632]">
+            <div className="flex h-16 items-center border-b border-[#283039] px-6">
+              <Skeleton className="h-8 w-32 bg-[#283039]" />
+            </div>
+            <div className="p-4 space-y-4">
+              {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-12 w-full bg-[#283039]" />)}
+            </div>
+          </div>
+
+          <div className="flex-1 flex flex-col lg:ml-72 transition-all duration-300">
+            {/* Header Skeleton */}
+            <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-[#283039] bg-[#101922]/80 px-6 backdrop-blur-xl">
+              <Skeleton className="h-8 w-8 lg:hidden bg-[#283039]" />
+              <div className="flex items-center gap-4 ml-auto">
+                <Skeleton className="h-10 w-32 bg-[#283039] rounded-full" />
+              </div>
+            </header>
+
+            <main className="flex flex-1 flex-col items-center justify-center px-4 py-12 lg:px-8">
+              <div className="w-full max-w-4xl space-y-12">
+
+                {/* Clock Skeleton */}
+                <div className="flex flex-col items-center text-center">
+                  <Skeleton className="h-8 w-24 rounded-full bg-[#283039]" />
+                  <Skeleton className="mt-8 h-24 w-64 bg-[#283039]" />
+                  <Skeleton className="mt-4 h-6 w-48 bg-[#283039]" />
+                </div>
+
+                {/* Buttons Skeleton */}
+                <div className="flex flex-col gap-4 lg:flex-row lg:justify-center w-full max-w-2xl mx-auto">
+                  <Skeleton className="h-24 sm:h-20 w-full flex-1 rounded-2xl bg-[#283039]" />
+                  <Skeleton className="h-24 sm:h-20 w-full flex-1 rounded-2xl bg-[#283039]" />
+                </div>
+
+                {/* Stats Skeleton */}
+                <div className="grid gap-6 md:grid-cols-2 lg:gap-8">
+                  <Skeleton className="h-40 rounded-2xl bg-[#283039]" />
+                  <Skeleton className="h-40 rounded-2xl bg-[#283039]" />
+                </div>
+
+                {/* Recent Activity Skeleton */}
+                <div className="rounded-2xl border border-[#283039] bg-[#1c2632]/50 p-6">
+                  <Skeleton className="h-5 w-32 mb-4 bg-[#283039]" />
+                  <div className="space-y-4">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="flex justify-between border-b border-gray-800 pb-3 last:border-0 hover:bg-transparent">
+                        <Skeleton className="h-5 w-24 bg-[#283039]" />
+                        <Skeleton className="h-5 w-32 bg-[#283039]" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+            </main>
+          </div>
+        </div>
       </div>
     )
   }
 
+  // Ensure stats is available before rendering main content to avoid flicker if partial data
   return (
     <div className="bg-[#101922] font-sans text-white antialiased selection:bg-[#137fec]/30 min-h-screen">
       <div className="relative flex min-h-screen flex-col overflow-hidden">
