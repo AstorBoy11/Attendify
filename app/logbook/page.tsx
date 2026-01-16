@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import { toast } from 'sonner';
-import { Loader2, Calendar as CalendarIcon, Upload, FileText, Download, X, Eye } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon, Upload, FileText, Download, X, Eye, FileSpreadsheet, File } from 'lucide-react';
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -356,13 +356,17 @@ const LogbookPage = () => {
     const handleViewClick = (log: LogEntry) => {
         if (!log.attachmentUrl) return;
 
-        // Determine type roughly (not perfect but works for common extensions)
         const lowerName = (log.attachmentName || "").toLowerCase();
         let type = 'unknown';
-        if (lowerName.endsWith('.png') || lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg') || lowerName.endsWith('.gif')) {
+
+        if (lowerName.match(/\.(png|jpg|jpeg|gif|webp)$/)) {
             type = 'image';
         } else if (lowerName.endsWith('.pdf')) {
             type = 'pdf';
+        } else if (lowerName.match(/\.(doc|docx|rtf|txt)$/)) {
+            type = 'document';
+        } else if (lowerName.match(/\.(xls|xlsx|csv)$/)) {
+            type = 'spreadsheet';
         }
 
         setViewingFile({
@@ -787,12 +791,36 @@ const LogbookPage = () => {
                                 <div className="flex-1 bg-[#101922] p-4 overflow-auto flex items-center justify-center">
                                     {viewingFile.type === 'image' ? (
                                         <img src={viewingFile.url} alt="Preview" className="max-w-full max-h-full object-contain rounded-lg shadow-md" />
-                                    ) : (
+                                    ) : viewingFile.type === 'pdf' ? (
                                         <iframe
                                             src={viewingFile.url}
                                             className="w-full h-full rounded-lg bg-white"
                                             title="File Preview"
                                         />
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center text-center p-8">
+                                            {viewingFile.type === 'spreadsheet' ? (
+                                                <FileSpreadsheet className="w-24 h-24 text-green-500 mb-4 opacity-80" />
+                                            ) : viewingFile.type === 'document' ? (
+                                                <FileText className="w-24 h-24 text-blue-500 mb-4 opacity-80" />
+                                            ) : (
+                                                <File className="w-24 h-24 text-gray-400 mb-4 opacity-80" />
+                                            )}
+
+                                            <h4 className="text-xl font-semibold mb-2">Preview not available</h4>
+                                            <p className="text-gray-400 max-w-sm mb-6">
+                                                This file type cannot be previewed directly in the browser. Please download it to view.
+                                            </p>
+
+                                            <a
+                                                href={viewingFile.url}
+                                                download={viewingFile.name}
+                                                className="inline-flex items-center gap-2 bg-[#137fec] hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition-all shadow-lg shadow-blue-500/20"
+                                            >
+                                                <Download className="w-5 h-5" />
+                                                Download File
+                                            </a>
+                                        </div>
                                     )}
                                 </div>
                             </div>
