@@ -32,6 +32,7 @@ interface LogEntry {
     date: string;
     attachmentUrl?: string;
     attachmentName?: string;
+    isRecordedPhysical?: boolean;
 }
 
 interface UserInfo {
@@ -226,7 +227,7 @@ const LogbookPage = () => {
 
         const tableColumn = ["Date", "Activity", "Attachment"];
         const tableRows = monthlyLogs.map(log => [
-            format(new Date(log.date), "MMM d, yyyy"),
+            format(new Date(log.date), "EEEE, MMM d, yyyy"),
             log.activity,
             log.attachmentName || "-"
         ]);
@@ -273,6 +274,32 @@ const LogbookPage = () => {
         } catch (error) {
             console.error(error);
             toast.error("Error deleting log");
+        }
+    };
+
+    const handleTogglePhysicalStatus = async (log: LogEntry) => {
+        const newStatus = !log.isRecordedPhysical;
+        try {
+            const res = await fetch('/api/logbook', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: log._id, isRecordedPhysical: newStatus })
+            });
+            if (res.ok) {
+                toast.success(newStatus ? "Marked as recorded in physical logbook" : "Marked as pending");
+                // Update local state
+                setMonthlyLogs(prev => prev.map(l =>
+                    l._id === log._id ? { ...l, isRecordedPhysical: newStatus } : l
+                ));
+                setLogs(prev => prev.map(l =>
+                    l._id === log._id ? { ...l, isRecordedPhysical: newStatus } : l
+                ));
+            } else {
+                toast.error("Failed to update status");
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Error updating status");
         }
     };
 
@@ -376,6 +403,12 @@ const LogbookPage = () => {
             type
         });
     };
+
+    // Calculate days for monthly view
+    const daysInMonth = new Date(parseInt(viewYear), parseInt(viewMonth), 0).getDate();
+    const allDaysInMonth = Array.from({ length: daysInMonth }, (_, i) => {
+        return new Date(parseInt(viewYear), parseInt(viewMonth) - 1, i + 1);
+    });
 
     return (
         <div className="bg-[#101922] font-sans text-white antialiased selection:bg-[#137fec]/30 min-h-screen">
@@ -624,10 +657,11 @@ const LogbookPage = () => {
                                         <table className="w-full text-sm text-left">
                                             <thead className="text-xs uppercase bg-[#101922] text-gray-400 border-b border-[#283039]">
                                                 <tr>
-                                                    <th className="px-6 py-4 font-semibold w-[150px]">Date</th>
+                                                    <th className="px-6 py-4 font-semibold w-[180px]">Date</th>
                                                     <th className="px-6 py-4 font-semibold">Activity</th>
-                                                    <th className="px-6 py-4 font-semibold w-[40px]">File</th>
-                                                    <th className="px-6 py-4 font-semibold w-[100px] text-right">Actions</th>
+                                                    <th className="px-6 py-4 font-semibold w-[50px]">File</th>
+                                                    <th className="px-6 py-4 font-semibold w-[100px] text-center">Actions</th>
+                                                    <th className="px-6 py-4 font-semibold w-[160px] text-center">Physical Logbook</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-[#283039]">
@@ -637,57 +671,84 @@ const LogbookPage = () => {
                                                         <tr key={i}>
                                                             <td className="px-6 py-4"><Skeleton className="h-4 w-24 bg-[#283039]" /></td>
                                                             <td className="px-6 py-4"><Skeleton className="h-4 w-full bg-[#283039]" /></td>
+                                                            <td className="px-6 py-4"><Skeleton className="h-4 w-20 bg-[#283039]" /></td>
                                                             <td className="px-6 py-4"><Skeleton className="h-8 w-8 rounded-lg bg-[#283039]" /></td>
                                                             <td className="px-6 py-4"><div className="flex justify-end gap-2"><Skeleton className="h-8 w-8 rounded-lg bg-[#283039]" /><Skeleton className="h-8 w-8 rounded-lg bg-[#283039]" /></div></td>
                                                         </tr>
                                                     ))
                                                 ) : monthlyLogs.length === 0 ? (
                                                     <tr>
-                                                        <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                                                        <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
                                                             No logs found for this month.
                                                         </td>
                                                     </tr>
                                                 ) : (
-                                                    monthlyLogs.map((log) => (
-                                                        <tr key={log._id} className="hover:bg-[#232d3b] transition-colors group">
-                                                            <td className="px-6 py-4 text-gray-300 align-top whitespace-nowrap">
-                                                                {format(new Date(log.date), "MMM d, yyyy")}
-                                                            </td>
-                                                            <td className="px-6 py-4 text-gray-200 align-top whitespace-pre-wrap leading-relaxed">
-                                                                {log.activity}
-                                                            </td>
-                                                            <td className="px-6 py-4 align-top">
-                                                                {log.attachmentUrl && (
+                                                    monthlyLogs.map((log) => {
+                                                        const logDate = new Date(log.date);
+                                                        const isToday = format(new Date(), 'yyyy-MM-dd') === format(logDate, 'yyyy-MM-dd');
+                                                        return (
+                                                            <tr key={log._id} className={cn("hover:bg-[#232d3b] transition-colors group", isToday && "bg-[#137fec]/5")}>
+                                                                <td className="px-6 py-4 text-gray-300 align-top whitespace-nowrap">
+                                                                    <div className="flex flex-col">
+                                                                        <span className={cn("font-medium", isToday && "text-[#137fec]")}>{format(logDate, "EEEE")}</span>
+                                                                        <span className="text-xs text-gray-500">{format(logDate, "d MMMM yyyy")}</span>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-6 py-4 text-gray-200 align-top whitespace-pre-wrap leading-relaxed">
+                                                                    {log.activity}
+                                                                </td>
+                                                                <td className="px-6 py-4 align-top">
+                                                                    {log.attachmentUrl ? (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleViewClick(log)}
+                                                                            title={log.attachmentName || "View File"}
+                                                                            className="inline-flex items-center justify-center w-8 h-8 text-[#137fec] bg-[#137fec]/10 rounded-lg hover:bg-[#137fec] hover:text-white transition-all"
+                                                                        >
+                                                                            <Eye className="w-4 h-4" />
+                                                                        </button>
+                                                                    ) : (
+                                                                        <span className="text-gray-600">-</span>
+                                                                    )}
+                                                                </td>
+                                                                <td className="px-6 py-4 align-top">
+                                                                    <div className="flex items-center justify-center gap-1">
+                                                                        <button
+                                                                            onClick={() => handleEditClick(log)}
+                                                                            className="p-1.5 text-gray-500 hover:text-[#137fec] hover:bg-[#137fec]/10 rounded-lg transition-all"
+                                                                            title="Edit Log"
+                                                                        >
+                                                                            <span className="material-symbols-outlined text-[18px]">edit</span>
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => handleDelete(log._id)}
+                                                                            className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all"
+                                                                            title="Delete Log"
+                                                                        >
+                                                                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                                                                        </button>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-6 py-4 align-top text-center">
                                                                     <button
-                                                                        type="button"
-                                                                        onClick={() => handleViewClick(log)}
-                                                                        title={log.attachmentName || "View File"}
-                                                                        className="inline-flex items-center justify-center w-8 h-8 text-[#137fec] bg-[#137fec]/10 rounded-lg hover:bg-[#137fec] hover:text-white transition-all"
+                                                                        onClick={() => handleTogglePhysicalStatus(log)}
+                                                                        className={cn(
+                                                                            "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer",
+                                                                            log.isRecordedPhysical
+                                                                                ? "bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20"
+                                                                                : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 hover:bg-yellow-500/20"
+                                                                        )}
+                                                                        title={log.isRecordedPhysical ? "Click to mark as pending" : "Click to mark as recorded"}
                                                                     >
-                                                                        <Eye className="w-4 h-4" />
+                                                                        <span className="material-symbols-outlined text-[14px]">
+                                                                            {log.isRecordedPhysical ? "check_circle" : "pending"}
+                                                                        </span>
+                                                                        {log.isRecordedPhysical ? "Recorded" : "Pending"}
                                                                     </button>
-                                                                )}
-                                                            </td>
-                                                            <td className="px-6 py-4 text-right align-top group">
-                                                                <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                    <button
-                                                                        onClick={() => handleEditClick(log)}
-                                                                        className="p-1.5 text-gray-500 hover:text-[#137fec] hover:bg-[#137fec]/10 rounded-lg transition-all"
-                                                                        title="Edit Log"
-                                                                    >
-                                                                        <span className="material-symbols-outlined text-[18px]">edit</span>
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => handleDelete(log._id)}
-                                                                        className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all"
-                                                                        title="Delete Log"
-                                                                    >
-                                                                        <span className="material-symbols-outlined text-[18px]">delete</span>
-                                                                    </button>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ))
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })
                                                 )}
                                             </tbody>
                                         </table>

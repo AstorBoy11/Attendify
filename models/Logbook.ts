@@ -7,6 +7,7 @@ const LogbookSchema = new mongoose.Schema({
     attachmentUrl: { type: String }, // Can be a path or a Data URI
     attachmentName: { type: String },
     attachmentData: { type: String }, // Store Base64 data here (optional backup or primary storage)
+    isRecordedPhysical: { type: Boolean, default: false }, // Whether recorded in physical logbook
 }, { timestamps: true });
 
 export default mongoose.models.Logbook || mongoose.model('Logbook', LogbookSchema);

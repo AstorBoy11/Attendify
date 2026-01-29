@@ -198,3 +198,37 @@ export async function PUT(req: Request) {
         return NextResponse.json({ message: 'Server Error', error: error.message }, { status: 500 });
     }
 }
+
+// PATCH - Toggle physical logbook status
+export async function PATCH(req: Request) {
+    try {
+        await connectToDatabase();
+        const userId = await getUserId();
+        if (!userId) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+
+        const body = await req.json();
+        const { id, isRecordedPhysical } = body;
+
+        if (!id || typeof isRecordedPhysical !== 'boolean') {
+            return NextResponse.json({ message: 'Missing ID or isRecordedPhysical value' }, { status: 400 });
+        }
+
+        const log = await Logbook.findOne({ _id: id, userId });
+        if (!log) {
+            return NextResponse.json({ message: 'Log not found' }, { status: 404 });
+        }
+
+        const updatedLog = await Logbook.findByIdAndUpdate(
+            id,
+            { isRecordedPhysical },
+            { new: true }
+        );
+
+        console.log("PATCH: Log status updated:", updatedLog?._id, "isRecordedPhysical:", isRecordedPhysical);
+
+        return NextResponse.json({ log: updatedLog });
+    } catch (error: any) {
+        console.error("Logbook PATCH Error:", error);
+        return NextResponse.json({ message: 'Server Error', error: error.message }, { status: 500 });
+    }
+}
