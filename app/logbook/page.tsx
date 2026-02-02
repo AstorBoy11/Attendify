@@ -30,6 +30,8 @@ interface LogEntry {
     activity: string;
     createdAt: string;
     date: string;
+    checkIn?: string;
+    checkOut?: string;
     attachmentUrl?: string;
     attachmentName?: string;
     isRecordedPhysical?: boolean;
@@ -50,6 +52,8 @@ const LogbookPage = () => {
 
     const [logs, setLogs] = useState<LogEntry[]>([]);
     const [newLog, setNewLog] = useState('');
+    const [checkInTime, setCheckInTime] = useState('');
+    const [checkOutTime, setCheckOutTime] = useState('');
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [loadingLogs, setLoadingLogs] = useState(false);
     const [submitting, setSubmitting] = useState(false);
@@ -124,6 +128,8 @@ const LogbookPage = () => {
             const formData = new FormData();
             formData.append('date', format(selectedDate, 'yyyy-MM-dd'));
             formData.append('activity', newLog);
+            if (checkInTime) formData.append('checkIn', checkInTime);
+            if (checkOutTime) formData.append('checkOut', checkOutTime);
             if (selectedFile) {
                 if (selectedFile.size > 2 * 1024 * 1024) { // 2MB limit
                     toast.error("File size too large (max 2MB)");
@@ -141,6 +147,8 @@ const LogbookPage = () => {
             if (res.ok) {
                 toast.success("Activity logged");
                 setNewLog('');
+                setCheckInTime('');
+                setCheckOutTime('');
                 setSelectedFile(null);
                 fetchLogs();
             } else {
@@ -225,9 +233,11 @@ const LogbookPage = () => {
         doc.text(`User: ${user.name}`, 14, 30);
         doc.text(`Email: ${user.email}`, 14, 36);
 
-        const tableColumn = ["Date", "Activity", "Attachment"];
+        const tableColumn = ["Date", "Check In", "Check Out", "Activity", "Attachment"];
         const tableRows = monthlyLogs.map(log => [
             format(new Date(log.date), "EEEE, MMM d, yyyy"),
+            log.checkIn || "-",
+            log.checkOut || "-",
             log.activity,
             log.attachmentName || "-"
         ]);
@@ -247,8 +257,10 @@ const LogbookPage = () => {
             },
             columnStyles: {
                 0: { cellWidth: 30 },
-                1: { cellWidth: 'auto' }, // Activity takes remaining space
-                2: { cellWidth: 40 }
+                1: { cellWidth: 20 },
+                2: { cellWidth: 20 },
+                3: { cellWidth: 'auto' }, // Activity takes remaining space
+                4: { cellWidth: 30 }
             },
             alternateRowStyles: {
                 fillColor: [245, 245, 245]
@@ -324,6 +336,8 @@ const LogbookPage = () => {
     // Edit state
     const [editingLog, setEditingLog] = useState<LogEntry | null>(null);
     const [editActivity, setEditActivity] = useState('');
+    const [editCheckIn, setEditCheckIn] = useState('');
+    const [editCheckOut, setEditCheckOut] = useState('');
     const [editFile, setEditFile] = useState<File | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [savingEdit, setSavingEdit] = useState(false);
@@ -331,6 +345,8 @@ const LogbookPage = () => {
     const handleEditClick = (log: LogEntry) => {
         setEditingLog(log);
         setEditActivity(log.activity);
+        setEditCheckIn(log.checkIn || '');
+        setEditCheckOut(log.checkOut || '');
         setEditFile(null); // Reset file input
         setIsEditModalOpen(true);
     };
@@ -344,6 +360,8 @@ const LogbookPage = () => {
             const formData = new FormData();
             formData.append('id', editingLog._id);
             formData.append('activity', editActivity);
+            formData.append('checkIn', editCheckIn);
+            formData.append('checkOut', editCheckOut);
             if (editFile) {
                 if (editFile.size > 2 * 1024 * 1024) { // 2MB limit
                     toast.error("File size too large (max 2MB)");
@@ -363,6 +381,8 @@ const LogbookPage = () => {
                 setIsEditModalOpen(false);
                 setEditingLog(null);
                 setEditActivity('');
+                setEditCheckIn('');
+                setEditCheckOut('');
                 setEditFile(null);
                 fetchLogs(); // Refresh daily logs
                 setDeleteTrigger(prev => prev + 1); // Trigger monthly refresh (reusing this trigger basically means "refresh data")
@@ -484,6 +504,31 @@ const LogbookPage = () => {
                                         />
                                     </div>
 
+                                    <div className="flex gap-4 mb-4">
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-medium text-gray-400 mb-2">
+                                                Check In
+                                            </label>
+                                            <input
+                                                type="time"
+                                                value={checkInTime}
+                                                onChange={(e) => setCheckInTime(e.target.value)}
+                                                className="w-full bg-[#101922] border border-[#283039] rounded-xl p-4 text-white outline-none focus:border-[#137fec] focus:ring-1 focus:ring-[#137fec] transition-all"
+                                            />
+                                        </div>
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-medium text-gray-400 mb-2">
+                                                Check Out
+                                            </label>
+                                            <input
+                                                type="time"
+                                                value={checkOutTime}
+                                                onChange={(e) => setCheckOutTime(e.target.value)}
+                                                className="w-full bg-[#101922] border border-[#283039] rounded-xl p-4 text-white outline-none focus:border-[#137fec] focus:ring-1 focus:ring-[#137fec] transition-all"
+                                            />
+                                        </div>
+                                    </div>
+
                                     {/* File Input */}
                                     <div className="mb-6 flex items-center gap-4">
                                         <div className="relative">
@@ -580,8 +625,20 @@ const LogbookPage = () => {
                                                 <div className="flex items-center gap-3 mt-4 pt-4 border-t border-[#283039]">
                                                     <div className="flex items-center gap-1.5 text-xs text-gray-500 bg-[#101922] px-2 py-1 rounded-md">
                                                         <span className="material-symbols-outlined text-[14px]">schedule</span>
-                                                        {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        Created: {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                     </div>
+                                                    {log.checkIn && (
+                                                        <div className="flex items-center gap-1.5 text-xs text-green-400 bg-[#101922] px-2 py-1 rounded-md border border-green-500/20">
+                                                            <span className="material-symbols-outlined text-[14px]">login</span>
+                                                            In: {log.checkIn}
+                                                        </div>
+                                                    )}
+                                                    {log.checkOut && (
+                                                        <div className="flex items-center gap-1.5 text-xs text-red-400 bg-[#101922] px-2 py-1 rounded-md border border-red-500/20">
+                                                            <span className="material-symbols-outlined text-[14px]">logout</span>
+                                                            Out: {log.checkOut}
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 <div className="absolute top-4 right-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
@@ -658,6 +715,8 @@ const LogbookPage = () => {
                                             <thead className="text-xs uppercase bg-[#101922] text-gray-400 border-b border-[#283039]">
                                                 <tr>
                                                     <th className="px-6 py-4 font-semibold w-[180px]">Date</th>
+                                                    <th className="px-6 py-4 font-semibold w-[100px]">Check In</th>
+                                                    <th className="px-6 py-4 font-semibold w-[100px]">Check Out</th>
                                                     <th className="px-6 py-4 font-semibold">Activity</th>
                                                     <th className="px-6 py-4 font-semibold w-[50px]">File</th>
                                                     <th className="px-6 py-4 font-semibold w-[100px] text-center">Actions</th>
@@ -678,7 +737,7 @@ const LogbookPage = () => {
                                                     ))
                                                 ) : monthlyLogs.length === 0 ? (
                                                     <tr>
-                                                        <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                                                        <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
                                                             No logs found for this month.
                                                         </td>
                                                     </tr>
@@ -693,6 +752,12 @@ const LogbookPage = () => {
                                                                         <span className={cn("font-medium", isToday && "text-[#137fec]")}>{format(logDate, "EEEE")}</span>
                                                                         <span className="text-xs text-gray-500">{format(logDate, "d MMMM yyyy")}</span>
                                                                     </div>
+                                                                </td>
+                                                                <td className="px-6 py-4 text-gray-300 whitespace-nowrap">
+                                                                    {log.checkIn || "-"}
+                                                                </td>
+                                                                <td className="px-6 py-4 text-gray-300 whitespace-nowrap">
+                                                                    {log.checkOut || "-"}
                                                                 </td>
                                                                 <td className="px-6 py-4 text-gray-200 align-top whitespace-pre-wrap leading-relaxed">
                                                                     {log.activity}
@@ -760,150 +825,178 @@ const LogbookPage = () => {
                     </main>
 
                     {/* Edit Modal */}
-                    {isEditModalOpen && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-                            <div className="bg-[#1c2632] border border-[#283039] rounded-2xl p-6 w-full max-w-lg shadow-2xl relative">
-                                <button
-                                    onClick={() => setIsEditModalOpen(false)}
-                                    className="absolute top-4 right-4 text-gray-400 hover:text-white"
-                                >
-                                    <X className="w-5 h-5" />
-                                </button>
-                                <h2 className="text-xl font-bold mb-4">Edit Log</h2>
-                                <form onSubmit={handleEditSave}>
-                                    <div className="mb-4">
-                                        <label className="block text-sm font-medium text-gray-400 mb-2">
-                                            Activity
-                                        </label>
-                                        <textarea
-                                            value={editActivity}
-                                            onChange={(e) => setEditActivity(e.target.value)}
-                                            placeholder="Update your activity..."
-                                            className="w-full bg-[#101922] border border-[#283039] rounded-xl p-4 text-white min-h-[120px] outline-none focus:border-[#137fec] focus:ring-1 focus:ring-[#137fec] transition-all resize-none placeholder:text-gray-600"
-                                        />
-                                    </div>
-                                    <div className="mb-6">
-                                        <label className="block text-sm font-medium text-gray-400 mb-2">
-                                            Update Attachment (Optional)
-                                        </label>
-                                        <div className="flex items-center gap-4">
-                                            <div className="relative">
-                                                <input
-                                                    type="file"
-                                                    id="edit-file-upload"
-                                                    className="hidden"
-                                                    onChange={(e) => e.target.files && setEditFile(e.target.files[0])}
-                                                    accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-                                                />
-                                                <label
-                                                    htmlFor="edit-file-upload"
-                                                    className="flex items-center gap-2 cursor-pointer bg-[#101922] border border-[#283039] hover:border-[#137fec] text-gray-300 px-4 py-2 rounded-lg transition-all text-sm"
-                                                >
-                                                    <Upload className="w-4 h-4" />
-                                                    Replace File <span className="text-xs text-gray-500 ml-1">(Max 2MB)</span>
-                                                </label>
-                                            </div>
-                                            {editFile && (
-                                                <div className="flex items-center gap-2 bg-[#137fec]/10 border border-[#137fec]/20 px-3 py-1.5 rounded-lg text-sm text-[#137fec]">
-                                                    <span className="max-w-[150px] truncate">{editFile.name}</span>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setEditFile(null)}
-                                                        className="hover:text-red-400 transition-colors"
-                                                    >
-                                                        <X className="w-3.5 h-3.5" />
-                                                    </button>
-                                                </div>
-                                            )}
+                    {
+                        isEditModalOpen && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                                <div className="bg-[#1c2632] border border-[#283039] rounded-2xl p-6 w-full max-w-lg shadow-2xl relative">
+                                    <button
+                                        onClick={() => setIsEditModalOpen(false)}
+                                        className="absolute top-4 right-4 text-gray-400 hover:text-white"
+                                    >
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                    <h2 className="text-xl font-bold mb-4">Edit Log</h2>
+                                    <form onSubmit={handleEditSave}>
+                                        <div className="mb-4">
+                                            <label className="block text-sm font-medium text-gray-400 mb-2">
+                                                Activity
+                                            </label>
+                                            <textarea
+                                                value={editActivity}
+                                                onChange={(e) => setEditActivity(e.target.value)}
+                                                placeholder="Update your activity..."
+                                                className="w-full bg-[#101922] border border-[#283039] rounded-xl p-4 text-white min-h-[120px] outline-none focus:border-[#137fec] focus:ring-1 focus:ring-[#137fec] transition-all resize-none placeholder:text-gray-600"
+                                            />
                                         </div>
-                                    </div>
-                                    <div className="flex justify-end gap-2">
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            onClick={() => setIsEditModalOpen(false)}
-                                            className="text-gray-400 hover:text-white hover:bg-[#283039]"
-                                        >
-                                            Cancel
-                                        </Button>
-                                        <button
-                                            type="submit"
-                                            disabled={savingEdit || !editActivity.trim()}
-                                            className="bg-[#137fec] hover:bg-blue-600 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg font-semibold transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2"
-                                        >
-                                            {savingEdit && <Loader2 className="animate-spin size-4" />}
-                                            Save Changes
-                                        </button>
-                                    </div>
-                                </form>
+                                        <div className="flex gap-4 mb-4">
+                                            <div className="flex-1">
+                                                <label className="block text-sm font-medium text-gray-400 mb-2">
+                                                    Check In
+                                                </label>
+                                                <input
+                                                    type="time"
+                                                    value={editCheckIn}
+                                                    onChange={(e) => setEditCheckIn(e.target.value)}
+                                                    className="w-full bg-[#101922] border border-[#283039] rounded-xl p-4 text-white outline-none focus:border-[#137fec] focus:ring-1 focus:ring-[#137fec] transition-all"
+                                                />
+                                            </div>
+                                            <div className="flex-1">
+                                                <label className="block text-sm font-medium text-gray-400 mb-2">
+                                                    Check Out
+                                                </label>
+                                                <input
+                                                    type="time"
+                                                    value={editCheckOut}
+                                                    onChange={(e) => setEditCheckOut(e.target.value)}
+                                                    className="w-full bg-[#101922] border border-[#283039] rounded-xl p-4 text-white outline-none focus:border-[#137fec] focus:ring-1 focus:ring-[#137fec] transition-all"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="mb-6">
+                                            <label className="block text-sm font-medium text-gray-400 mb-2">
+                                                Update Attachment (Optional)
+                                            </label>
+                                            <div className="flex items-center gap-4">
+                                                <div className="relative">
+                                                    <input
+                                                        type="file"
+                                                        id="edit-file-upload"
+                                                        className="hidden"
+                                                        onChange={(e) => e.target.files && setEditFile(e.target.files[0])}
+                                                        accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                                                    />
+                                                    <label
+                                                        htmlFor="edit-file-upload"
+                                                        className="flex items-center gap-2 cursor-pointer bg-[#101922] border border-[#283039] hover:border-[#137fec] text-gray-300 px-4 py-2 rounded-lg transition-all text-sm"
+                                                    >
+                                                        <Upload className="w-4 h-4" />
+                                                        Replace File <span className="text-xs text-gray-500 ml-1">(Max 2MB)</span>
+                                                    </label>
+                                                </div>
+                                                {editFile && (
+                                                    <div className="flex items-center gap-2 bg-[#137fec]/10 border border-[#137fec]/20 px-3 py-1.5 rounded-lg text-sm text-[#137fec]">
+                                                        <span className="max-w-[150px] truncate">{editFile.name}</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setEditFile(null)}
+                                                            className="hover:text-red-400 transition-colors"
+                                                        >
+                                                            <X className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-end gap-2">
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                onClick={() => setIsEditModalOpen(false)}
+                                                className="text-gray-400 hover:text-white hover:bg-[#283039]"
+                                            >
+                                                Cancel
+                                            </Button>
+                                            <button
+                                                type="submit"
+                                                disabled={savingEdit || !editActivity.trim()}
+                                                className="bg-[#137fec] hover:bg-blue-600 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg font-semibold transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2"
+                                            >
+                                                {savingEdit && <Loader2 className="animate-spin size-4" />}
+                                                Save Changes
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )
+                    }
 
                     {/* View File Modal */}
-                    {viewingFile && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-                            <div className="bg-[#1c2632] border border-[#283039] rounded-2xl w-full max-w-4xl h-[90vh] flex flex-col shadow-2xl relative">
-                                <div className="p-4 border-b border-[#283039] flex items-center justify-between">
-                                    <h3 className="font-semibold text-white truncate max-w-[80%]">{viewingFile.name}</h3>
-                                    <div className="flex items-center gap-2">
-                                        <a
-                                            href={viewingFile.url}
-                                            download={viewingFile.name}
-                                            className="p-2 text-gray-400 hover:text-white hover:bg-[#283039] rounded-lg transition-colors"
-                                            title="Download"
-                                        >
-                                            <Download className="w-5 h-5" />
-                                        </a>
-                                        <button
-                                            onClick={() => setViewingFile(null)}
-                                            className="p-2 text-gray-400 hover:text-white hover:bg-[#283039] rounded-lg transition-colors"
-                                        >
-                                            <X className="w-5 h-5" />
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className="flex-1 bg-[#101922] p-4 overflow-auto flex items-center justify-center">
-                                    {viewingFile.type === 'image' ? (
-                                        <img src={viewingFile.url} alt="Preview" className="max-w-full max-h-full object-contain rounded-lg shadow-md" />
-                                    ) : viewingFile.type === 'pdf' ? (
-                                        <iframe
-                                            src={viewingFile.url}
-                                            className="w-full h-full rounded-lg bg-white"
-                                            title="File Preview"
-                                        />
-                                    ) : (
-                                        <div className="flex flex-col items-center justify-center text-center p-8">
-                                            {viewingFile.type === 'spreadsheet' ? (
-                                                <FileSpreadsheet className="w-24 h-24 text-green-500 mb-4 opacity-80" />
-                                            ) : viewingFile.type === 'document' ? (
-                                                <FileText className="w-24 h-24 text-blue-500 mb-4 opacity-80" />
-                                            ) : (
-                                                <File className="w-24 h-24 text-gray-400 mb-4 opacity-80" />
-                                            )}
-
-                                            <h4 className="text-xl font-semibold mb-2">Preview not available</h4>
-                                            <p className="text-gray-400 max-w-sm mb-6">
-                                                This file type cannot be previewed directly in the browser. Please download it to view.
-                                            </p>
-
+                    {
+                        viewingFile && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                                <div className="bg-[#1c2632] border border-[#283039] rounded-2xl w-full max-w-4xl h-[90vh] flex flex-col shadow-2xl relative">
+                                    <div className="p-4 border-b border-[#283039] flex items-center justify-between">
+                                        <h3 className="font-semibold text-white truncate max-w-[80%]">{viewingFile.name}</h3>
+                                        <div className="flex items-center gap-2">
                                             <a
                                                 href={viewingFile.url}
                                                 download={viewingFile.name}
-                                                className="inline-flex items-center gap-2 bg-[#137fec] hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition-all shadow-lg shadow-blue-500/20"
+                                                className="p-2 text-gray-400 hover:text-white hover:bg-[#283039] rounded-lg transition-colors"
+                                                title="Download"
                                             >
                                                 <Download className="w-5 h-5" />
-                                                Download File
                                             </a>
+                                            <button
+                                                onClick={() => setViewingFile(null)}
+                                                className="p-2 text-gray-400 hover:text-white hover:bg-[#283039] rounded-lg transition-colors"
+                                            >
+                                                <X className="w-5 h-5" />
+                                            </button>
                                         </div>
-                                    )}
+                                    </div>
+                                    <div className="flex-1 bg-[#101922] p-4 overflow-auto flex items-center justify-center">
+                                        {viewingFile.type === 'image' ? (
+                                            <img src={viewingFile.url} alt="Preview" className="max-w-full max-h-full object-contain rounded-lg shadow-md" />
+                                        ) : viewingFile.type === 'pdf' ? (
+                                            <iframe
+                                                src={viewingFile.url}
+                                                className="w-full h-full rounded-lg bg-white"
+                                                title="File Preview"
+                                            />
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center text-center p-8">
+                                                {viewingFile.type === 'spreadsheet' ? (
+                                                    <FileSpreadsheet className="w-24 h-24 text-green-500 mb-4 opacity-80" />
+                                                ) : viewingFile.type === 'document' ? (
+                                                    <FileText className="w-24 h-24 text-blue-500 mb-4 opacity-80" />
+                                                ) : (
+                                                    <File className="w-24 h-24 text-gray-400 mb-4 opacity-80" />
+                                                )}
+
+                                                <h4 className="text-xl font-semibold mb-2">Preview not available</h4>
+                                                <p className="text-gray-400 max-w-sm mb-6">
+                                                    This file type cannot be previewed directly in the browser. Please download it to view.
+                                                </p>
+
+                                                <a
+                                                    href={viewingFile.url}
+                                                    download={viewingFile.name}
+                                                    className="inline-flex items-center gap-2 bg-[#137fec] hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition-all shadow-lg shadow-blue-500/20"
+                                                >
+                                                    <Download className="w-5 h-5" />
+                                                    Download File
+                                                </a>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
+                        )
+                    }
+                </div >
+            </div >
+        </div >
     );
 
 

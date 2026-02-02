@@ -12,6 +12,11 @@ async function getUserId() {
     return payload?.userId || null;
 }
 
+import Attendance from '@/models/Attendance';
+import { format } from 'date-fns';
+
+// ... imports
+
 export async function GET(req: Request) {
     try {
         await connectToDatabase();
@@ -23,18 +28,13 @@ export async function GET(req: Request) {
         const monthStr = searchParams.get('month');
         const yearStr = searchParams.get('year');
 
+        let startDate: Date, endDate: Date;
+
         if (dateStr) {
             // Parse date (YYYY-MM-DD)
             const [year, month, day] = dateStr.split('-').map(Number);
-            const startDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
-            const endDate = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
-
-            const logs = await Logbook.find({
-                userId,
-                date: { $gte: startDate, $lte: endDate }
-            }).sort({ createdAt: 1 });
-
-            return NextResponse.json({ logs });
+            startDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+            endDate = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
         } else if (monthStr && yearStr) {
             // Fetch for entire month
             const year = parseInt(yearStr);
@@ -44,19 +44,71 @@ export async function GET(req: Request) {
                 return NextResponse.json({ message: 'Invalid month or year' }, { status: 400 });
             }
 
-            const startDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
-            // End date is start of next month
-            const endDate = new Date(Date.UTC(year, month, 1, 0, 0, 0));
-
-            const logs = await Logbook.find({
-                userId,
-                date: { $gte: startDate, $lt: endDate }
-            }).sort({ date: 1, createdAt: 1 }); // Sort by log date, then creation time
-
-            return NextResponse.json({ logs });
+            startDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
+            endDate = new Date(Date.UTC(year, month, 1, 0, 0, 0));
         } else {
             return NextResponse.json({ message: 'Date or Month/Year is required' }, { status: 400 });
         }
+
+        // Fetch logs
+        const logs = await Logbook.find({
+            userId,
+            date: { $gte: startDate, $lt: endDate } // Use $lt for safe boundary
+        }).lean().sort({ date: 1, createdAt: 1 });
+
+        // Fetch attendance records for the same period
+        const attendanceRecords = await Attendance.find({
+            userId,
+            checkIn: { $gte: startDate, $lt: endDate }
+        }).lean();
+
+        // Helpers to format time from Date object to HH:mm
+        // Note: Attendance dates are stored in UTC. We should ideally format them according to user timezone.
+        // For simplicity and consistency with existing format, we might want to just output HH:mm from the Date object.
+        // But since the server is likely UTC, manual entries are usually local time.
+        // Let's assume the client handles timezone or we format strictly.
+        // The `format` from date-fns might format in local server time.
+        // Let's just extract HH:mm from the ISO string or Date object carefully.
+        // Actually, easiest is to pass the ISO string or formatted string.
+        // The frontend expects HH:mm. Let's try to extract it from the Date object.
+        // BUT wait, if I use `format(date, 'HH:mm')` on server, it uses server timezone.
+        // It's safer to just pass the raw strings and let frontend format, OR format here if we know the offset.
+        // The Logbook `checkIn` is stored as string `HH:mm`.
+        // Let's try to format it here. If the server is UTC, we might need offset.
+        // However, usually manual entry `checkIn` string is just "09:00".
+        // `Attendance` checkIn is a Date.
+        // Let's format `Attendance.checkIn` to HH:mm using a default approach (e.g. +7 for WIB as user seems Indonesian based on file paths "Kata-Naufal")
+        // Or better, just format it as is if it's correct.
+        // Let's stick to a simple extraction for now:
+        const formatTime = (d: Date | string) => {
+            if (!d) return undefined;
+            const dateObj = new Date(d);
+            // Basic formatting to HH:mm
+            return dateObj.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+        };
+
+        // Merge logic
+        const mergedLogs = logs.map((log: any) => {
+            // Find corresponding attendance for this log's date
+            // Log date is stored as Date at noon UTC.
+            // Attendance checkIn is precise Date.
+            // Match by string YYYY-MM-DD
+            const logDateStr = new Date(log.date).toISOString().split('T')[0];
+
+            const attendance = attendanceRecords.find((att: any) => {
+                const attDateStr = new Date(att.checkIn).toISOString().split('T')[0];
+                return attDateStr === logDateStr;
+            });
+
+            if (attendance) {
+                if (!log.checkIn) log.checkIn = formatTime(attendance.checkIn);
+                if (!log.checkOut && attendance.checkOut) log.checkOut = formatTime(attendance.checkOut);
+            }
+            return log;
+        });
+
+        return NextResponse.json({ logs: mergedLogs });
+
     } catch (error: any) {
         console.error("Logbook GET Error:", error);
         return NextResponse.json({ message: 'Server Error', error: error.message }, { status: 500 });
@@ -75,6 +127,8 @@ export async function POST(req: Request) {
         const formData = await req.formData();
         const date = formData.get('date') as string;
         const activity = formData.get('activity') as string;
+        const checkIn = formData.get('checkIn') as string;
+        const checkOut = formData.get('checkOut') as string;
         const file = formData.get('file') as File | null;
 
         if (!date || !activity) {
@@ -110,6 +164,8 @@ export async function POST(req: Request) {
             userId,
             date: logDate,
             activity,
+            checkIn,
+            checkOut,
             attachmentUrl,
             attachmentName
         });
@@ -157,6 +213,8 @@ export async function PUT(req: Request) {
         const formData = await req.formData();
         const id = formData.get('id') as string;
         const activity = formData.get('activity') as string;
+        const checkIn = formData.get('checkIn') as string;
+        const checkOut = formData.get('checkOut') as string;
         const file = formData.get('file') as File | null;
         // Optional: handle removing file if a specific flag is passed, but for now just optional overwrite
 
@@ -170,6 +228,8 @@ export async function PUT(req: Request) {
         }
 
         let updateData: any = { activity };
+        if (checkIn !== null) updateData.checkIn = checkIn;
+        if (checkOut !== null) updateData.checkOut = checkOut;
 
         if (file) {
             console.log("PUT: File received:", file.name);

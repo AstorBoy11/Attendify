@@ -8,6 +8,8 @@ const LogbookSchema = new mongoose.Schema({
     attachmentName: { type: String },
     attachmentData: { type: String }, // Store Base64 data here (optional backup or primary storage)
     isRecordedPhysical: { type: Boolean, default: false }, // Whether recorded in physical logbook
+    checkIn: { type: String }, // Time string HH:mm
+    checkOut: { type: String }, // Time string HH:mm
 }, { timestamps: true });
 
 export default mongoose.models.Logbook || mongoose.model('Logbook', LogbookSchema);
