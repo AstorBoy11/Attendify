@@ -531,7 +531,7 @@ const LogbookPage = () => {
 
                                     {/* File Input */}
                                     <div className="mb-6 flex items-center gap-4">
-                                        <div className="relative">
+                                        <div className="relative ml-auto order-2">
                                             <input
                                                 type="file"
                                                 id="file-upload"
@@ -548,7 +548,7 @@ const LogbookPage = () => {
                                             </label>
                                         </div>
                                         {selectedFile && (
-                                            <div className="flex items-center gap-2 bg-[#137fec]/10 border border-[#137fec]/20 px-3 py-1.5 rounded-lg text-sm text-[#137fec]">
+                                            <div className="order-1 flex items-center gap-2 bg-[#137fec]/10 border border-[#137fec]/20 px-3 py-1.5 rounded-lg text-sm text-[#137fec]">
                                                 <span className="max-w-[150px] truncate">{selectedFile.name}</span>
                                                 <button
                                                     type="button"
