@@ -234,13 +234,12 @@ const LogbookPage = () => {
         doc.text(`User: ${user.name}`, 14, 30);
         doc.text(`Email: ${user.email}`, 14, 36);
 
-        const tableColumn = ["Date", "Check In", "Check Out", "Activity", "Attachment"];
+        const tableColumn = ["Date", "Check In", "Check Out", "Activity"];
         const tableRows = monthlyLogs.map(log => [
             format(new Date(log.date), "EEEE, MMM d, yyyy"),
             log.checkIn || "-",
             log.checkOut || "-",
             log.activity,
-            log.attachmentName || "-"
         ]);
 
         autoTable(doc, {
@@ -258,10 +257,9 @@ const LogbookPage = () => {
             },
             columnStyles: {
                 0: { cellWidth: 30 },
-                1: { cellWidth: 20 },
-                2: { cellWidth: 20 },
-                3: { cellWidth: 'auto' }, // Activity takes remaining space
-                4: { cellWidth: 30 }
+                1: { cellWidth: 25 },
+                2: { cellWidth: 25 },
+                3: { cellWidth: 'auto' },
             },
             alternateRowStyles: {
                 fillColor: [245, 245, 245]
@@ -704,8 +702,8 @@ const LogbookPage = () => {
                                             <thead className="text-xs uppercase bg-[#101922] text-gray-400 border-b border-[#283039]">
                                                 <tr>
                                                     <th className="px-6 py-4 font-semibold w-[180px]">Date</th>
-                                                    <th className="px-6 py-4 font-semibold w-[100px]">Check In</th>
-                                                    <th className="px-6 py-4 font-semibold w-[100px]">Check Out</th>
+                                                    <th className="px-6 py-4 font-semibold w-[100px] text-center">Check In</th>
+                                                    <th className="px-6 py-4 font-semibold w-[100px] text-center">Check Out</th>
                                                     <th className="px-6 py-4 font-semibold">Activity</th>
                                                     <th className="px-6 py-4 font-semibold w-[50px]">File</th>
                                                     <th className="px-6 py-4 font-semibold w-[100px] text-center">Actions</th>
@@ -742,10 +740,10 @@ const LogbookPage = () => {
                                                                         <span className="text-xs text-gray-500">{format(logDate, "d MMMM yyyy")}</span>
                                                                     </div>
                                                                 </td>
-                                                                <td className="px-6 py-4 text-gray-300 whitespace-nowrap">
+                                                                <td className="px-6 py-4 text-gray-300 whitespace-nowrap text-center">
                                                                     {log.checkIn || "-"}
                                                                 </td>
-                                                                <td className="px-6 py-4 text-gray-300 whitespace-nowrap">
+                                                                <td className="px-6 py-4 text-gray-300 whitespace-nowrap text-center">
                                                                     {log.checkOut || "-"}
                                                                 </td>
                                                                 <td className="px-6 py-4 text-gray-200 align-top whitespace-pre-wrap leading-relaxed">
