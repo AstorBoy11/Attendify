@@ -49,12 +49,13 @@ export async function GET(req: Request) {
         const startDateStr = `${year}-${monthStr}-01`;
         const endDateStr = `${year}-${monthStr}-31`; // safe upper bound
 
-        // Fetch GLOBAL holidays + PERSONAL holidays for this user
+        // Fetch GLOBAL holidays + PERSONAL/PIKET entries for this user
         const holidays = await Holiday.find({
             dateString: { $gte: startDateStr, $lte: endDateStr },
             $or: [
                 { type: 'GLOBAL' },
-                { type: 'PERSONAL', userId: userId }
+                { type: 'PERSONAL', userId: userId },
+                { type: 'PIKET', userId: userId }
             ]
         }).sort({ dateString: 1 });
 
@@ -85,8 +86,8 @@ export async function POST(req: Request) {
             return NextResponse.json({ message: 'Missing required fields: date, name, type' }, { status: 400 });
         }
 
-        if (!['GLOBAL', 'PERSONAL'].includes(type)) {
-            return NextResponse.json({ message: 'Invalid type. Must be GLOBAL or PERSONAL.' }, { status: 400 });
+        if (!['GLOBAL', 'PERSONAL', 'PIKET'].includes(type)) {
+            return NextResponse.json({ message: 'Invalid type. Must be GLOBAL, PERSONAL, or PIKET.' }, { status: 400 });
         }
 
         // Convert date to dateString (timezone-safe)
@@ -101,19 +102,20 @@ export async function POST(req: Request) {
             dateString,
             name: name.trim(),
             type,
-            userId: type === 'PERSONAL' ? userId : null,
+            userId: (type === 'PERSONAL' || type === 'PIKET') ? userId : null,
         };
 
         // Check for duplicate
         const existing = await Holiday.findOne({
             dateString,
             type,
-            userId: type === 'PERSONAL' ? userId : null,
+            userId: (type === 'PERSONAL' || type === 'PIKET') ? userId : null,
         });
 
         if (existing) {
+            const typeLabel = type === 'GLOBAL' ? 'Global Holiday' : type === 'PERSONAL' ? 'Personal Leave' : 'Piket';
             return NextResponse.json({
-                message: `A ${type === 'GLOBAL' ? 'Global Holiday' : 'Personal Leave'} already exists on ${dateString}.`
+                message: `A ${typeLabel} already exists on ${dateString}.`
             }, { status: 409 });
         }
 
@@ -159,9 +161,9 @@ export async function DELETE(req: Request) {
             return NextResponse.json({ message: 'Holiday not found' }, { status: 404 });
         }
 
-        // Authorization: allow deletion if GLOBAL or if PERSONAL belongs to this user
-        if (holiday.type === 'PERSONAL' && String(holiday.userId) !== userId) {
-            return NextResponse.json({ message: 'Unauthorized: Cannot delete another user\'s leave' }, { status: 403 });
+        // Authorization: allow deletion if GLOBAL, or if PERSONAL/PIKET belongs to this user
+        if ((holiday.type === 'PERSONAL' || holiday.type === 'PIKET') && String(holiday.userId) !== userId) {
+            return NextResponse.json({ message: 'Unauthorized: Cannot delete another user\'s entry' }, { status: 403 });
         }
 
         await Holiday.findByIdAndDelete(id);

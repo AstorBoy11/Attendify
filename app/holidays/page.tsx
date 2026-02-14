@@ -16,6 +16,7 @@ import {
     CalendarDays,
     Info,
     X,
+    Briefcase,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -25,7 +26,7 @@ interface Holiday {
     date: string;
     dateString: string;
     name: string;
-    type: 'GLOBAL' | 'PERSONAL';
+    type: 'GLOBAL' | 'PERSONAL' | 'PIKET';
     userId: string | null;
 }
 
@@ -64,7 +65,7 @@ export default function HolidaysPage() {
     // Form state
     const [showForm, setShowForm] = useState(false);
     const [formName, setFormName] = useState('');
-    const [formType, setFormType] = useState<'GLOBAL' | 'PERSONAL'>('GLOBAL');
+    const [formType, setFormType] = useState<'GLOBAL' | 'PERSONAL' | 'PIKET'>('GLOBAL');
 
     // Detail popover state
     const [selectedHoliday, setSelectedHoliday] = useState<Holiday | null>(null);
@@ -116,12 +117,15 @@ export default function HolidaysPage() {
     // Build maps for calendar modifiers
     const globalDates: Date[] = [];
     const personalDates: Date[] = [];
+    const piketDates: Date[] = [];
     const holidayMap = new Map<string, Holiday[]>();
 
     holidays.forEach((h) => {
         const d = parseDateString(h.dateString);
         if (h.type === 'GLOBAL') {
             globalDates.push(d);
+        } else if (h.type === 'PIKET') {
+            piketDates.push(d);
         } else {
             personalDates.push(d);
         }
@@ -129,6 +133,17 @@ export default function HolidaysPage() {
         existing.push(h);
         holidayMap.set(h.dateString, existing);
     });
+
+    // Helper: get color classes for a given type
+    const getTypeColor = (type: string) => {
+        switch (type) {
+            case 'GLOBAL': return { dot: 'bg-red-500', badge: 'bg-red-500/10 text-red-400', border: 'border-red-500/50 bg-red-500/10 text-red-400' };
+            case 'PIKET': return { dot: 'bg-[#137fec]', badge: 'bg-[#137fec]/10 text-[#137fec]', border: 'border-[#137fec]/50 bg-[#137fec]/10 text-[#137fec]' };
+            default: return { dot: 'bg-amber-400', badge: 'bg-amber-400/10 text-amber-400', border: 'border-amber-400/50 bg-amber-400/10 text-amber-400' };
+        }
+    };
+    const getTypeLabel = (type: string) => type === 'GLOBAL' ? 'Libur Nasional' : type === 'PIKET' ? 'Piket' : 'Cuti/Sakit';
+    const getTypeIcon = (type: string) => type === 'GLOBAL' ? <Globe className="size-3" /> : type === 'PIKET' ? <Briefcase className="size-3" /> : <UserRound className="size-3" />;
 
     // Handle calendar day click
     const handleDayClick = (day: Date) => {
@@ -231,8 +246,8 @@ export default function HolidaysPage() {
                                         <CalendarDays className="size-5" />
                                     </div>
                                     <div>
-                                        <h1 className="text-2xl font-bold text-white tracking-tight">Holiday & Leave Manager</h1>
-                                        <p className="text-sm text-[#9dabb9]">Manage holidays and personal leaves that affect your working days calculation.</p>
+                                        <h1 className="text-2xl font-bold text-white tracking-tight">Schedule Manager</h1>
+                                        <p className="text-sm text-[#9dabb9]">Manage holidays, leaves, and piket days that affect your working days calculation.</p>
                                     </div>
                                 </div>
                             </div>
@@ -255,7 +270,7 @@ export default function HolidaysPage() {
                                             </div>
                                             <div className="flex items-center gap-2 text-xs text-[#9dabb9]">
                                                 <span className="size-2.5 rounded-full bg-[#137fec]"></span>
-                                                Today
+                                                Piket
                                             </div>
                                         </div>
 
@@ -270,10 +285,12 @@ export default function HolidaysPage() {
                                                 modifiers={{
                                                     globalHoliday: globalDates,
                                                     personalLeave: personalDates,
+                                                    piketDay: piketDates,
                                                 }}
                                                 modifiersClassNames={{
                                                     globalHoliday: 'holiday-global',
                                                     personalLeave: 'holiday-personal',
+                                                    piketDay: 'holiday-piket',
                                                 }}
                                                 className="!bg-transparent"
                                                 classNames={{
@@ -302,7 +319,7 @@ export default function HolidaysPage() {
                                             <div className="flex items-center justify-between px-6 pt-5 pb-3">
                                                 <div className="flex items-center gap-2">
                                                     <CalendarPlus className="size-4 text-[#137fec]" />
-                                                    <h3 className="text-sm font-semibold text-white">Add Holiday</h3>
+                                                    <h3 className="text-sm font-semibold text-white">Add Entry</h3>
                                                 </div>
                                                 <button
                                                     onClick={() => { setShowForm(false); setSelectedDate(undefined); }}
@@ -336,11 +353,11 @@ export default function HolidaysPage() {
                                                 {/* Type Select */}
                                                 <div>
                                                     <label className="text-sm font-medium text-[#9dabb9] mb-1.5 block">Type</label>
-                                                    <div className="grid grid-cols-2 gap-2">
+                                                    <div className="grid grid-cols-3 gap-2">
                                                         <button
                                                             type="button"
                                                             onClick={() => setFormType('GLOBAL')}
-                                                            className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-all ${formType === 'GLOBAL'
+                                                            className={`flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-lg border text-xs font-medium transition-all ${formType === 'GLOBAL'
                                                                 ? 'border-red-500/50 bg-red-500/10 text-red-400'
                                                                 : 'border-[#3b4754] bg-[#1c2127] text-[#9dabb9] hover:border-[#4b5563]'
                                                                 }`}
@@ -351,13 +368,24 @@ export default function HolidaysPage() {
                                                         <button
                                                             type="button"
                                                             onClick={() => setFormType('PERSONAL')}
-                                                            className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-all ${formType === 'PERSONAL'
+                                                            className={`flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-lg border text-xs font-medium transition-all ${formType === 'PERSONAL'
                                                                 ? 'border-amber-400/50 bg-amber-400/10 text-amber-400'
                                                                 : 'border-[#3b4754] bg-[#1c2127] text-[#9dabb9] hover:border-[#4b5563]'
                                                                 }`}
                                                         >
                                                             <UserRound className="size-3.5" />
                                                             Cuti/Sakit
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setFormType('PIKET')}
+                                                            className={`flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-lg border text-xs font-medium transition-all ${formType === 'PIKET'
+                                                                ? 'border-[#137fec]/50 bg-[#137fec]/10 text-[#137fec]'
+                                                                : 'border-[#3b4754] bg-[#1c2127] text-[#9dabb9] hover:border-[#4b5563]'
+                                                                }`}
+                                                        >
+                                                            <Briefcase className="size-3.5" />
+                                                            Piket
                                                         </button>
                                                     </div>
                                                 </div>
@@ -371,7 +399,7 @@ export default function HolidaysPage() {
                                                     {submitting ? (
                                                         <><Loader2 className="size-4 animate-spin" /> Adding...</>
                                                     ) : (
-                                                        <><CalendarPlus className="size-4" /> Add Holiday</>
+                                                        <><CalendarPlus className="size-4" /> Add Entry</>
                                                     )}
                                                 </button>
                                             </form>
@@ -382,7 +410,7 @@ export default function HolidaysPage() {
                                     {selectedHoliday && (
                                         <div className="bg-[#111418] rounded-xl border border-[#283039] shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
                                             <div className="flex items-center justify-between px-6 pt-5 pb-3">
-                                                <h3 className="text-sm font-semibold text-white">Holiday Detail</h3>
+                                                <h3 className="text-sm font-semibold text-white">Entry Detail</h3>
                                                 <button
                                                     onClick={() => { setSelectedHoliday(null); setSelectedDate(undefined); }}
                                                     className="text-gray-500 hover:text-white transition-colors"
@@ -400,12 +428,9 @@ export default function HolidaysPage() {
                                                 <div className="flex items-center justify-between">
                                                     <div>
                                                         <p className="text-white font-semibold">{selectedHoliday.name}</p>
-                                                        <span className={`inline-flex items-center gap-1.5 mt-1 text-xs font-medium px-2 py-0.5 rounded-full ${selectedHoliday.type === 'GLOBAL'
-                                                            ? 'bg-red-500/10 text-red-400'
-                                                            : 'bg-amber-400/10 text-amber-400'
-                                                            }`}>
-                                                            {selectedHoliday.type === 'GLOBAL' ? <Globe className="size-3" /> : <UserRound className="size-3" />}
-                                                            {selectedHoliday.type === 'GLOBAL' ? 'Libur Nasional' : 'Cuti/Sakit'}
+                                                        <span className={`inline-flex items-center gap-1.5 mt-1 text-xs font-medium px-2 py-0.5 rounded-full ${getTypeColor(selectedHoliday.type).badge}`}>
+                                                            {getTypeIcon(selectedHoliday.type)}
+                                                            {getTypeLabel(selectedHoliday.type)}
                                                         </span>
                                                     </div>
                                                     <button
@@ -424,7 +449,7 @@ export default function HolidaysPage() {
                                                         {holidayMap.get(toLocalDateString(selectedDate))?.filter(h => h._id !== selectedHoliday._id).map(h => (
                                                             <div key={h._id} className="flex items-center justify-between py-2">
                                                                 <div className="flex items-center gap-2">
-                                                                    <span className={`size-2 rounded-full ${h.type === 'GLOBAL' ? 'bg-red-500' : 'bg-amber-400'}`}></span>
+                                                                    <span className={`size-2 rounded-full ${getTypeColor(h.type).dot}`}></span>
                                                                     <span className="text-sm text-white">{h.name}</span>
                                                                 </div>
                                                                 <button
@@ -445,10 +470,10 @@ export default function HolidaysPage() {
                                     <div className="bg-[#111418] rounded-xl border border-[#283039] shadow-2xl overflow-hidden">
                                         <div className="flex items-center justify-between px-6 pt-5 pb-3">
                                             <h3 className="text-sm font-semibold text-white">
-                                                {format(currentMonth, 'MMMM yyyy')} Holidays
+                                                {format(currentMonth, 'MMMM yyyy')} Schedule
                                             </h3>
                                             <span className="text-xs text-[#9dabb9] bg-[#1c2127] px-2 py-1 rounded-md">
-                                                {holidays.length} {holidays.length === 1 ? 'day' : 'days'}
+                                                {holidays.length} {holidays.length === 1 ? 'entry' : 'entries'}
                                             </span>
                                         </div>
 
@@ -464,7 +489,7 @@ export default function HolidaysPage() {
                                                     <div className="size-12 rounded-full bg-[#1c2127] flex items-center justify-center mb-3">
                                                         <CalendarDays className="size-5 text-[#3b4754]" />
                                                     </div>
-                                                    <p className="text-sm text-[#9dabb9]">No holidays this month.</p>
+                                                    <p className="text-sm text-[#9dabb9]">No entries this month.</p>
                                                     <p className="text-xs text-[#3b4754] mt-1">Click a date on the calendar to add one.</p>
                                                 </div>
                                             ) : (
@@ -480,7 +505,7 @@ export default function HolidaysPage() {
                                                             }}
                                                         >
                                                             <div className="flex items-center gap-3 min-w-0">
-                                                                <div className={`size-2 rounded-full shrink-0 ${h.type === 'GLOBAL' ? 'bg-red-500' : 'bg-amber-400'}`}></div>
+                                                                <div className={`size-2 rounded-full shrink-0 ${getTypeColor(h.type).dot}`}></div>
                                                                 <div className="min-w-0">
                                                                     <p className="text-sm font-medium text-white truncate">{h.name}</p>
                                                                     <p className="text-xs text-[#9dabb9]">
@@ -489,11 +514,8 @@ export default function HolidaysPage() {
                                                                 </div>
                                                             </div>
                                                             <div className="flex items-center gap-2 shrink-0">
-                                                                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${h.type === 'GLOBAL'
-                                                                    ? 'bg-red-500/10 text-red-400'
-                                                                    : 'bg-amber-400/10 text-amber-400'
-                                                                    }`}>
-                                                                    {h.type === 'GLOBAL' ? 'Global' : 'Personal'}
+                                                                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${getTypeColor(h.type).badge}`}>
+                                                                    {getTypeLabel(h.type)}
                                                                 </span>
                                                                 <button
                                                                     onClick={(e) => { e.stopPropagation(); handleDelete(h._id); }}
@@ -513,7 +535,7 @@ export default function HolidaysPage() {
                                     <div className="bg-[#1c2127] rounded-lg p-4 border border-[#283039] flex gap-3 items-start">
                                         <Info className="size-4 text-[#137fec] mt-0.5 shrink-0" />
                                         <p className="text-[#9dabb9] text-xs leading-relaxed">
-                                            Holidays reduce the number of working days, which automatically adjusts your monthly target. <strong className="text-white">National Holidays</strong> affect all users, while <strong className="text-white">Personal Leaves</strong> only affect your own dashboard.
+                                            Holidays reduce working days, lowering your monthly target. <strong className="text-white">Piket</strong> converts a Sunday/holiday into a working day, <em>increasing</em> your target. <strong className="text-white">National Holidays</strong> affect all users, while <strong className="text-white">Personal Leaves</strong> and <strong className="text-white">Piket</strong> only affect your own dashboard.
                                         </p>
                                     </div>
                                 </div>
@@ -526,7 +548,11 @@ export default function HolidaysPage() {
             {/* Custom CSS for calendar holiday indicators */}
             <style jsx global>{`
                 .holiday-global button,
-                .holiday-global > div {
+                .holiday-global > div,
+                .holiday-personal button,
+                .holiday-personal > div,
+                .holiday-piket button,
+                .holiday-piket > div {
                     position: relative;
                 }
                 .holiday-global button::after,
@@ -552,6 +578,18 @@ export default function HolidaysPage() {
                     height: 5px;
                     border-radius: 50%;
                     background-color: #fbbf24;
+                }
+                .holiday-piket button::after,
+                td:has(.holiday-piket) button::after {
+                    content: '';
+                    position: absolute;
+                    bottom: 2px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 5px;
+                    height: 5px;
+                    border-radius: 50%;
+                    background-color: #137fec;
                 }
             `}</style>
         </div>

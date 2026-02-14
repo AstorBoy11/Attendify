@@ -130,8 +130,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, user }) => {
           </Link>
 
           {/* Holidays Link */}
-          <Link href="/settings/holidays" className={getLinkClass('/settings/holidays')}>
-            <span className={`material-symbols-outlined text-[22px] transition-colors ${pathname === '/settings/holidays' ? 'text-[#137fec]' : 'group-hover:text-white'}`}>
+          <Link href="/holidays" className={getLinkClass('/holidays')}>
+            <span className={`material-symbols-outlined text-[22px] transition-colors ${pathname === '/holidays' ? 'text-[#137fec]' : 'group-hover:text-white'}`}>
               calendar_month
             </span>
             <span>Holidays</span>

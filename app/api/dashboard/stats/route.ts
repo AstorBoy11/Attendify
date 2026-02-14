@@ -127,40 +127,66 @@ export async function GET(req: Request) {
             // Daily Target from user settings
             const dailyTarget = user.dailyTarget || 480;
 
-            // Fetch holidays for this month (GLOBAL + PERSONAL for this user)
+            // Fetch schedule entries for this month (GLOBAL + PERSONAL + PIKET for this user)
             const monthStr = String(now.getMonth() + 1).padStart(2, '0');
             const yearStr = String(now.getFullYear());
             const startDateStr = `${yearStr}-${monthStr}-01`;
             const endDateStr = `${yearStr}-${monthStr}-31`;
 
-            const holidays = await Holiday.find({
+            const scheduleEntries = await Holiday.find({
                 dateString: { $gte: startDateStr, $lte: endDateStr },
                 $or: [
                     { type: 'GLOBAL' },
-                    { type: 'PERSONAL', userId: user._id }
+                    { type: 'PERSONAL', userId: user._id },
+                    { type: 'PIKET', userId: user._id }
                 ]
             });
 
-            // Build a Set of holiday dateStrings for O(1) lookup
-            const holidayDateSet = new Set(holidays.map((h: any) => h.dateString as string));
+            // Separate into holiday set and piket set
+            const holidayDateSet = new Set<string>();
+            const piketDateSet = new Set<string>();
 
-            // Calculate Working Days: exclude Sundays AND holidays
+            scheduleEntries.forEach((entry: any) => {
+                if (entry.type === 'PIKET') {
+                    piketDateSet.add(entry.dateString);
+                } else {
+                    holidayDateSet.add(entry.dateString);
+                }
+            });
+
+            // Calculate Working Days with priority-based logic:
+            // 1. PIKET → force work day (overrides Sunday & holiday)
+            // 2. Sunday → skip (default off)
+            // 3. Holiday (Global/Personal) → skip
+            // 4. Else → normal work day
             const tempDate = new Date(startOfMonth);
             while (tempDate <= endOfMonth) {
                 const dayOfWeek = tempDate.getDay();
-                // Build dateString for this day
                 const ds = `${tempDate.getFullYear()}-${String(tempDate.getMonth() + 1).padStart(2, '0')}-${String(tempDate.getDate()).padStart(2, '0')}`;
 
-                if (dayOfWeek !== 0 && !holidayDateSet.has(ds)) {
+                const isPiket = piketDateSet.has(ds);
+                const isSunday = dayOfWeek === 0;
+                const isHoliday = holidayDateSet.has(ds);
+
+                if (isPiket) {
+                    // PIKET overrides everything — forced work day
+                    workingDaysCount++;
+                } else if (isSunday) {
+                    // Default day off
+                } else if (isHoliday) {
+                    // Holiday / leave — skip
+                } else {
+                    // Normal work day
                     workingDaysCount++;
                 }
+
                 tempDate.setDate(tempDate.getDate() + 1);
             }
 
             // Dynamic Monthly Target = working days * daily target
             dynamicMonthlyTarget = workingDaysCount * dailyTarget;
 
-            console.log("[Stats API] Stats gathered successfully. Working days:", workingDaysCount, "Holidays:", holidayDateSet.size, "Dynamic target:", dynamicMonthlyTarget);
+            console.log("[Stats API] Working days:", workingDaysCount, "Holidays:", holidayDateSet.size, "Piket:", piketDateSet.size, "Dynamic target:", dynamicMonthlyTarget);
 
         } catch (statsError) {
             console.error("[Stats API] Error calculating stats (continuing with defaults):", statsError);
