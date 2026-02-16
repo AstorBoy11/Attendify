@@ -16,6 +16,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Attendify",
   description: "Minimalist Attendance Tracker",
+  icons: {
+    icon: "/icon.png",
+  },
 };
 
 export default function RootLayout({

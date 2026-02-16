@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -20,8 +21,8 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, userName }) => {
           <span className="material-symbols-outlined text-3xl">menu</span>
         </button>
         <Link href="/dashboard">
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl font-bold tracking-tight text-white">Attendify</h2>
+          <div className="flex items-center gap-1">
+            <Image src="/main_logo.png" alt="Attendify Logo" width={300} height={150} className="h-12 w-auto object-contain" />
           </div>
         </Link>
       </div>

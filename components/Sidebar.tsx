@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation'; // Wajib ada untuk mendeteksi URL aktif
 
 interface SidebarProps {
@@ -81,10 +82,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, user }) => {
       >
         {/* Header & Close Button */}
         <div className="flex items-start justify-between p-6 shrink-0">
-          <div>
-            <h2 className="text-xl font-bold text-white tracking-tight">Attendify</h2>
-            <p className="text-xs text-gray-400 mt-1">Productivity Tool</p>
-          </div>
           <button
             onClick={onClose}
             className="flex size-10 items-center justify-center rounded-md text-gray-400 hover:text-white hover:bg-[#283039] transition-colors lg:hidden"
