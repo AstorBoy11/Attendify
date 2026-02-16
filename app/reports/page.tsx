@@ -23,6 +23,13 @@ interface AttendanceRecord {
   notes?: string;
 }
 
+interface HolidayEntry {
+  _id: string;
+  dateString: string;
+  name: string;
+  type: 'GLOBAL' | 'PERSONAL' | 'PIKET';
+}
+
 type ApiAttendanceRecord = Omit<AttendanceRecord, '_id'> & { _id?: unknown };
 
 const MonthlyAttendanceReport: React.FC = () => {
@@ -43,6 +50,7 @@ const MonthlyAttendanceReport: React.FC = () => {
 
   const [allRecords, setAllRecords] = useState<AttendanceRecord[]>([]);
   const [filteredRecords, setFilteredRecords] = useState<AttendanceRecord[]>([]);
+  const [holidays, setHolidays] = useState<HolidayEntry[]>([]);
 
   // Manual Entry State
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
@@ -128,6 +136,13 @@ const MonthlyAttendanceReport: React.FC = () => {
 
         setAllRecords(normalized);
         setFilteredRecords(normalized); // Initially show all
+      }
+
+      // Fetch holidays for this month
+      const holidayRes = await fetch(`/api/holidays?year=${selectedYear}&month=${selectedMonth + 1}`);
+      if (holidayRes.ok) {
+        const holidayData = await holidayRes.json();
+        setHolidays(holidayData.holidays || []);
       }
     } catch (error) {
       console.error("Failed to fetch data", error);
@@ -280,15 +295,10 @@ const MonthlyAttendanceReport: React.FC = () => {
     const toastId = toast.loading("Generating PDF...");
 
     try {
-      // 1. Fetch holidays for this month
-      const holidayRes = await fetch(`/api/holidays?year=${selectedYear}&month=${selectedMonth + 1}`);
-      const holidayData = holidayRes.ok ? await holidayRes.json() : { holidays: [] };
-      const holidaysList: { dateString: string; name: string; type: string }[] = holidayData.holidays || [];
-
-      // Build lookup maps: dateString → holiday entries
+      // 1. Build lookup maps from pre-fetched holidays
       const globalHolidayMap = new Map<string, string>();
       const personalHolidayMap = new Map<string, string>();
-      holidaysList.forEach(h => {
+      holidays.forEach(h => {
         if (h.type === 'GLOBAL') globalHolidayMap.set(h.dateString, h.name);
         else if (h.type === 'PERSONAL') personalHolidayMap.set(h.dateString, h.name);
       });
