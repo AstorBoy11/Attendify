@@ -350,7 +350,13 @@ const MonthlyAttendanceReport: React.FC = () => {
         } else {
           // Case B: Tidak ada absensi
           if (isPersonalHoliday) {
-            keterangan = personalHolidayMap.get(ds)!;
+            const rawName = personalHolidayMap.get(ds) || '';
+            const lower = rawName.toLowerCase();
+            if (lower.includes('sakit') || lower.includes('izin') || lower.includes('cuti')) {
+              keterangan = rawName;
+            } else {
+              keterangan = `Cuti (${rawName})`;
+            }
             style = 'cuti';
           } else if (isGlobalHoliday) {
             keterangan = globalHolidayMap.get(ds)!;
@@ -383,9 +389,9 @@ const MonthlyAttendanceReport: React.FC = () => {
       // Color map for row styling
       const styleColors: Record<RowMeta['style'], [number, number, number] | null> = {
         hadir: null, // default / white
-        piket: [220, 240, 255],   // light blue
-        cuti: [255, 249, 220],    // light yellow
-        libur: [240, 240, 240],   // light grey
+        piket: [220, 252, 231],   // #dcfce7 green
+        cuti: [254, 249, 195],    // #fef9c3 yellow
+        libur: [243, 244, 246],   // #f3f4f6 grey
         alpha: null,              // white with red text
       };
 

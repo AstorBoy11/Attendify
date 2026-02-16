@@ -460,7 +460,7 @@ export default function HolidaysPage() {
                                                     <div className="grid grid-cols-3 gap-2">
                                                         <button
                                                             type="button"
-                                                            onClick={() => setFormType('GLOBAL')}
+                                                            onClick={() => { setFormType('GLOBAL'); setFormName(''); }}
                                                             className={`flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-lg border text-xs font-medium transition-all ${formType === 'GLOBAL'
                                                                 ? 'border-red-500/50 bg-red-500/10 text-red-400'
                                                                 : 'border-[#3b4754] bg-[#1c2127] text-[#9dabb9] hover:border-[#4b5563]'
@@ -471,7 +471,7 @@ export default function HolidaysPage() {
                                                         </button>
                                                         <button
                                                             type="button"
-                                                            onClick={() => setFormType('PERSONAL')}
+                                                            onClick={() => { setFormType('PERSONAL'); setFormName(''); }}
                                                             className={`flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-lg border text-xs font-medium transition-all ${formType === 'PERSONAL'
                                                                 ? 'border-amber-400/50 bg-amber-400/10 text-amber-400'
                                                                 : 'border-[#3b4754] bg-[#1c2127] text-[#9dabb9] hover:border-[#4b5563]'
@@ -482,7 +482,7 @@ export default function HolidaysPage() {
                                                         </button>
                                                         <button
                                                             type="button"
-                                                            onClick={() => setFormType('PIKET')}
+                                                            onClick={() => { setFormType('PIKET'); setFormName('Piket'); }}
                                                             className={`flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-lg border text-xs font-medium transition-all ${formType === 'PIKET'
                                                                 ? 'border-[#137fec]/50 bg-[#137fec]/10 text-[#137fec]'
                                                                 : 'border-[#3b4754] bg-[#1c2127] text-[#9dabb9] hover:border-[#4b5563]'
