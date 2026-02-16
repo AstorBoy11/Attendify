@@ -102,7 +102,7 @@ export async function POST(req: Request) {
             dateString,
             name: name.trim(),
             type,
-            isDeductible: isDeductible !== undefined ? isDeductible : true,
+            isDeductible: type === 'GLOBAL' ? true : type === 'PIKET' ? false : (isDeductible !== undefined ? isDeductible : true),
             userId: (type === 'PERSONAL' || type === 'PIKET') ? userId : null,
         };
 
