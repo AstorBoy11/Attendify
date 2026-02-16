@@ -5,6 +5,7 @@ const HolidaySchema = new mongoose.Schema({
     dateString: { type: String, required: true }, // "YYYY-MM-DD" for timezone-safe queries
     name: { type: String, required: true, trim: true },
     type: { type: String, enum: ['GLOBAL', 'PERSONAL', 'PIKET'], required: true },
+    isDeductible: { type: Boolean, default: true }, // false = target stays (e.g. vacation), true = target reduced (e.g. sick)
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
 }, { timestamps: true });
 

@@ -17,6 +17,10 @@ import {
     Info,
     X,
     Briefcase,
+    TrendingDown,
+    Equal,
+    Clock,
+    Plus,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -27,6 +31,7 @@ interface Holiday {
     dateString: string;
     name: string;
     type: 'GLOBAL' | 'PERSONAL' | 'PIKET';
+    isDeductible: boolean;
     userId: string | null;
 }
 
@@ -34,6 +39,14 @@ interface UserInfo {
     name: string;
     email: string;
     avatar?: string;
+}
+
+interface Adjustment {
+    _id: string;
+    name: string;
+    startDate: string;
+    endDate: string;
+    reductionMinutes: number;
 }
 
 // Helper: Create a timezone-safe date from "YYYY-MM-DD" without UTC shift
@@ -66,9 +79,20 @@ export default function HolidaysPage() {
     const [showForm, setShowForm] = useState(false);
     const [formName, setFormName] = useState('');
     const [formType, setFormType] = useState<'GLOBAL' | 'PERSONAL' | 'PIKET'>('GLOBAL');
+    const [formDeductible, setFormDeductible] = useState(true);
 
     // Detail popover state
     const [selectedHoliday, setSelectedHoliday] = useState<Holiday | null>(null);
+
+    // Adjustment state
+    const [adjustments, setAdjustments] = useState<Adjustment[]>([]);
+    const [adjLoading, setAdjLoading] = useState(false);
+    const [adjSubmitting, setAdjSubmitting] = useState(false);
+    const [showAdjForm, setShowAdjForm] = useState(false);
+    const [adjName, setAdjName] = useState('');
+    const [adjStartDate, setAdjStartDate] = useState('');
+    const [adjEndDate, setAdjEndDate] = useState('');
+    const [adjReduction, setAdjReduction] = useState(30);
 
     // Fetch user info
     useEffect(() => {
@@ -113,6 +137,84 @@ export default function HolidaysPage() {
         setLoading(true);
         fetchHolidays();
     }, [fetchHolidays]);
+
+    // Fetch adjustments
+    const fetchAdjustments = useCallback(async () => {
+        try {
+            setAdjLoading(true);
+            const year = currentMonth.getFullYear();
+            const month = currentMonth.getMonth() + 1;
+            const res = await fetch(`/api/adjustments?year=${year}&month=${month}`);
+            if (res.ok) {
+                const data = await res.json();
+                setAdjustments(data.adjustments);
+            }
+        } catch (error) {
+            console.error('Failed to fetch adjustments', error);
+        } finally {
+            setAdjLoading(false);
+        }
+    }, [currentMonth]);
+
+    useEffect(() => {
+        fetchAdjustments();
+    }, [fetchAdjustments]);
+
+    // Add adjustment
+    const handleAddAdjustment = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!adjName.trim() || !adjStartDate || !adjEndDate) {
+            toast.error('Please fill in all fields.');
+            return;
+        }
+        setAdjSubmitting(true);
+        const toastId = toast.loading('Adding adjustment...');
+        try {
+            const res = await fetch('/api/adjustments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: adjName.trim(),
+                    startDate: adjStartDate,
+                    endDate: adjEndDate,
+                    reductionMinutes: Number(adjReduction),
+                }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                toast.success('Adjustment added!', { id: toastId });
+                setShowAdjForm(false);
+                setAdjName('');
+                setAdjStartDate('');
+                setAdjEndDate('');
+                setAdjReduction(30);
+                fetchAdjustments();
+            } else {
+                toast.error(data.message || 'Failed to add adjustment', { id: toastId });
+            }
+        } catch {
+            toast.error('Network error.', { id: toastId });
+        } finally {
+            setAdjSubmitting(false);
+        }
+    };
+
+    // Delete adjustment
+    const handleDeleteAdjustment = async (id: string) => {
+        const toastId = toast.loading('Deleting adjustment...');
+        try {
+            const res = await fetch(`/api/adjustments?id=${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                toast.success('Adjustment deleted!', { id: toastId });
+                fetchAdjustments();
+            } else {
+                const data = await res.json();
+                toast.error(data.message || 'Failed to delete', { id: toastId });
+            }
+        } catch {
+            toast.error('Network error.', { id: toastId });
+        }
+    };
 
     // Build maps for calendar modifiers
     const globalDates: Date[] = [];
@@ -161,6 +263,7 @@ export default function HolidaysPage() {
             setShowForm(true);
             setFormName('');
             setFormType('GLOBAL');
+            setFormDeductible(true);
         }
     };
 
@@ -188,6 +291,7 @@ export default function HolidaysPage() {
                     date: safeDate.toISOString(),
                     name: formName.trim(),
                     type: formType,
+                    isDeductible: formType === 'PIKET' ? false : formDeductible,
                 }),
             });
 
@@ -390,6 +494,34 @@ export default function HolidaysPage() {
                                                     </div>
                                                 </div>
 
+                                                {/* Deduct Target Checkbox (hidden for PIKET) */}
+                                                {formType !== 'PIKET' && (
+                                                    <div>
+                                                        <label
+                                                            className="flex items-center gap-3 px-3 py-3 bg-[#1c2127] rounded-lg border border-[#283039] cursor-pointer group hover:border-[#3b4754] transition-colors"
+                                                            htmlFor="deductCheckbox"
+                                                        >
+                                                            <div className="relative">
+                                                                <input
+                                                                    id="deductCheckbox"
+                                                                    type="checkbox"
+                                                                    checked={formDeductible}
+                                                                    onChange={(e) => setFormDeductible(e.target.checked)}
+                                                                    className="sr-only peer"
+                                                                />
+                                                                <div className="w-9 h-5 bg-[#3b4754] rounded-full peer-checked:bg-[#137fec] transition-colors"></div>
+                                                                <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow peer-checked:translate-x-4 transition-transform"></div>
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <span className="text-sm text-white font-medium">Kurangi Target Bulanan</span>
+                                                                {!formDeductible && (
+                                                                    <p className="text-[10px] text-amber-400/80 mt-0.5">Target tetap. Anda perlu mengganti jam kerja di hari lain.</p>
+                                                                )}
+                                                            </div>
+                                                        </label>
+                                                    </div>
+                                                )}
+
                                                 {/* Submit */}
                                                 <button
                                                     type="submit"
@@ -432,6 +564,12 @@ export default function HolidaysPage() {
                                                             {getTypeIcon(selectedHoliday.type)}
                                                             {getTypeLabel(selectedHoliday.type)}
                                                         </span>
+                                                        {selectedHoliday.type !== 'PIKET' && (
+                                                            <span className={`inline-flex items-center gap-1 mt-1 ml-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${selectedHoliday.isDeductible ? 'bg-orange-500/10 text-orange-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                                                                {selectedHoliday.isDeductible ? <TrendingDown className="size-2.5" /> : <Equal className="size-2.5" />}
+                                                                {selectedHoliday.isDeductible ? 'Deduct' : 'No Deduct'}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                     <button
                                                         onClick={() => handleDelete(selectedHoliday._id)}
@@ -517,8 +655,144 @@ export default function HolidaysPage() {
                                                                 <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${getTypeColor(h.type).badge}`}>
                                                                     {getTypeLabel(h.type)}
                                                                 </span>
+                                                                {h.type !== 'PIKET' && (
+                                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${h.isDeductible ? 'bg-orange-500/10 text-orange-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                                                                        {h.isDeductible ? '↓' : '='}
+                                                                    </span>
+                                                                )}
                                                                 <button
                                                                     onClick={(e) => { e.stopPropagation(); handleDelete(h._id); }}
+                                                                    className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition-all p-1"
+                                                                >
+                                                                    <Trash2 className="size-3.5" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* === Seasonal Adjustments Section === */}
+                                    <div className="bg-[#111418] rounded-xl border border-[#283039] shadow-2xl overflow-hidden">
+                                        <div className="flex items-center justify-between px-6 pt-5 pb-3">
+                                            <div className="flex items-center gap-2">
+                                                <Clock className="size-4 text-purple-400" />
+                                                <h3 className="text-sm font-semibold text-white">Seasonal Adjustments (Global)</h3>
+                                            </div>
+                                            <button
+                                                onClick={() => setShowAdjForm(!showAdjForm)}
+                                                className="flex items-center gap-1 text-xs text-purple-400 hover:text-purple-300 transition-colors"
+                                            >
+                                                <Plus className="size-3.5" />
+                                                Add
+                                            </button>
+                                        </div>
+
+                                        {/* Add Adjustment Form */}
+                                        {showAdjForm && (
+                                            <form onSubmit={handleAddAdjustment} className="px-6 pb-4 flex flex-col gap-3 border-b border-[#283039] animate-in fade-in slide-in-from-top-2 duration-200">
+                                                <div>
+                                                    <label className="text-xs font-medium text-[#9dabb9] mb-1 block">Name</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="e.g. Ramadhan 2026"
+                                                        value={adjName}
+                                                        onChange={(e) => setAdjName(e.target.value)}
+                                                        className="w-full h-10 px-3 bg-[#1c2127] border border-[#3b4754] rounded-lg text-white text-sm placeholder:text-[#9dabb9]/50 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all"
+                                                        required
+                                                    />
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div>
+                                                        <label className="text-xs font-medium text-[#9dabb9] mb-1 block">Start Date</label>
+                                                        <input
+                                                            type="date"
+                                                            value={adjStartDate}
+                                                            onChange={(e) => setAdjStartDate(e.target.value)}
+                                                            className="w-full h-10 px-3 bg-[#1c2127] border border-[#3b4754] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all [color-scheme:dark]"
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-xs font-medium text-[#9dabb9] mb-1 block">End Date</label>
+                                                        <input
+                                                            type="date"
+                                                            value={adjEndDate}
+                                                            onChange={(e) => setAdjEndDate(e.target.value)}
+                                                            className="w-full h-10 px-3 bg-[#1c2127] border border-[#3b4754] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all [color-scheme:dark]"
+                                                            required
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs font-medium text-[#9dabb9] mb-1 block">Reduction (minutes/day)</label>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        value={adjReduction}
+                                                        onChange={(e) => setAdjReduction(Number(e.target.value))}
+                                                        className="w-full h-10 px-3 bg-[#1c2127] border border-[#3b4754] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all"
+                                                        required
+                                                    />
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowAdjForm(false)}
+                                                        className="flex-1 h-9 text-xs text-[#9dabb9] hover:text-white border border-[#3b4754] rounded-lg transition-colors"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                    <button
+                                                        type="submit"
+                                                        disabled={adjSubmitting}
+                                                        className="flex-1 h-9 text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+                                                    >
+                                                        {adjSubmitting ? <Loader2 className="size-3 animate-spin" /> : <Plus className="size-3" />}
+                                                        Add Adjustment
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        )}
+
+                                        {/* Adjustment List */}
+                                        <div className="px-6 pb-6 pt-3">
+                                            {adjLoading ? (
+                                                <div className="space-y-2">
+                                                    {[1, 2].map(i => (
+                                                        <Skeleton key={i} className="h-14 w-full rounded-lg bg-[#283039]" />
+                                                    ))}
+                                                </div>
+                                            ) : adjustments.length === 0 ? (
+                                                <div className="text-center py-6">
+                                                    <Clock className="size-5 text-[#3b4754] mx-auto mb-2" />
+                                                    <p className="text-xs text-[#9dabb9]">No adjustments active.</p>
+                                                    <p className="text-xs text-[#3b4754] mt-0.5">Add one during Ramadhan to reduce daily targets.</p>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-2">
+                                                    {adjustments.map((adj) => (
+                                                        <div
+                                                            key={adj._id}
+                                                            className="flex items-center justify-between px-3 py-3 bg-[#1c2127] rounded-lg border border-[#283039] hover:border-[#3b4754] transition-colors group"
+                                                        >
+                                                            <div className="flex items-center gap-3 min-w-0">
+                                                                <div className="size-2 rounded-full shrink-0 bg-purple-500"></div>
+                                                                <div className="min-w-0">
+                                                                    <p className="text-sm font-medium text-white truncate">{adj.name}</p>
+                                                                    <p className="text-xs text-[#9dabb9]">
+                                                                        {format(parseDateString(adj.startDate), 'dd MMM')} — {format(parseDateString(adj.endDate), 'dd MMM yyyy')}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-2 shrink-0">
+                                                                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400">
+                                                                    -{adj.reductionMinutes}m/day
+                                                                </span>
+                                                                <button
+                                                                    onClick={() => handleDeleteAdjustment(adj._id)}
                                                                     className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition-all p-1"
                                                                 >
                                                                     <Trash2 className="size-3.5" />
@@ -535,7 +809,7 @@ export default function HolidaysPage() {
                                     <div className="bg-[#1c2127] rounded-lg p-4 border border-[#283039] flex gap-3 items-start">
                                         <Info className="size-4 text-[#137fec] mt-0.5 shrink-0" />
                                         <p className="text-[#9dabb9] text-xs leading-relaxed">
-                                            Holidays reduce working days, lowering your monthly target. <strong className="text-white">Piket</strong> converts a Sunday/holiday into a working day, <em>increasing</em> your target. <strong className="text-white">National Holidays</strong> affect all users, while <strong className="text-white">Personal Leaves</strong> and <strong className="text-white">Piket</strong> only affect your own dashboard.
+                                            Holidays reduce working days, lowering your monthly target. <strong className="text-white">Piket</strong> converts a Sunday/holiday into a working day, <em>increasing</em> your target. <strong className="text-white">Seasonal Adjustments</strong> (e.g. Ramadhan) reduce your daily target for the period, applied globally to all users.
                                         </p>
                                     </div>
                                 </div>

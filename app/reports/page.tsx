@@ -274,93 +274,210 @@ const MonthlyAttendanceReport: React.FC = () => {
     return `${mins >= 0 ? '+' : '-'}${h}h ${m.toString().padStart(2, '0')}m`;
   };
 
-  // PDF Export Handler
-  const handleExportPDF = () => {
-    if (filteredRecords.length === 0) {
-      toast.error("No records to export");
-      return;
-    }
-
+  // PDF Export Handler — Full month with Keterangan
+  const handleExportPDF = async () => {
     setIsExporting(true);
     const toastId = toast.loading("Generating PDF...");
 
     try {
-      const doc = new jsPDF();
+      // 1. Fetch holidays for this month
+      const holidayRes = await fetch(`/api/holidays?year=${selectedYear}&month=${selectedMonth + 1}`);
+      const holidayData = holidayRes.ok ? await holidayRes.json() : { holidays: [] };
+      const holidaysList: { dateString: string; name: string; type: string }[] = holidayData.holidays || [];
 
-      // Add Title
-      doc.setFontSize(18);
-      doc.text(`Monthly Attendance Report - ${months[selectedMonth]} ${selectedYear}`, 14, 22);
-
-      // Add User Info
-      doc.setFontSize(11);
-      doc.text(`User: ${user?.name || 'N/A'}`, 14, 30);
-      doc.text(`Email: ${user?.email || 'N/A'}`, 14, 36);
-      doc.text(`Generated: ${format(new Date(), "PPP 'at' HH:mm")}`, 14, 42);
-
-      // Table columns and rows
-      const tableColumn = ["Date", "Day", "Check In", "Check Out", "Duration", "Status"];
-      const tableRows = filteredRecords.map(record => {
-        const recordDate = new Date(record.checkIn);
-        return [
-          format(recordDate, "dd MMM"),
-          format(recordDate, "EEEE"),
-          formatTime(record.checkIn),
-          formatTime(record.checkOut),
-          formatDuration(record.durationMinutes),
-          record.status
-        ];
+      // Build lookup maps: dateString → holiday entries
+      const globalHolidayMap = new Map<string, string>();
+      const personalHolidayMap = new Map<string, string>();
+      holidaysList.forEach(h => {
+        if (h.type === 'GLOBAL') globalHolidayMap.set(h.dateString, h.name);
+        else if (h.type === 'PERSONAL') personalHolidayMap.set(h.dateString, h.name);
       });
 
-      // Generate table
-      autoTable(doc, {
-        head: [tableColumn],
-        body: tableRows,
-        startY: 50,
-        styles: {
-          fontSize: 9,
-          cellPadding: 3,
-        },
-        headStyles: {
-          fillColor: [19, 127, 236], // #137fec
-          textColor: [255, 255, 255],
-          fontStyle: 'bold'
-        },
-        columnStyles: {
-          0: { cellWidth: 22 },
-          1: { cellWidth: 28 },
-          2: { cellWidth: 25 },
-          3: { cellWidth: 25 },
-          4: { cellWidth: 25 },
-          5: { cellWidth: 22 }
-        },
-        alternateRowStyles: {
-          fillColor: [245, 245, 245]
+      // Build attendance lookup: dateString → record
+      const attendanceMap = new Map<string, AttendanceRecord>();
+      allRecords.forEach(r => {
+        const d = new Date(r.checkIn);
+        const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        // Keep the latest record if multiple per day
+        if (!attendanceMap.has(ds) || (r.durationMinutes || 0) > (attendanceMap.get(ds)!.durationMinutes || 0)) {
+          attendanceMap.set(ds, r);
         }
       });
 
-      // Add Summary Section
+      // 2. Indonesian day names
+      const hariIndo = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+      const bulanIndo = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+      // 3. Iterate every day of the month
+      const totalDays = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+
+      // Row shape: [Tanggal, Jam Masuk, Jam Keluar, Durasi, Keterangan]
+      // Plus metadata for styling
+      type RowMeta = { row: string[]; style: 'hadir' | 'piket' | 'cuti' | 'libur' | 'alpha' };
+      const tableData: RowMeta[] = [];
+
+      for (let day = 1; day <= totalDays; day++) {
+        const date = new Date(selectedYear, selectedMonth, day);
+        const dayOfWeek = date.getDay();
+        const ds = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+        const dayLabel = `${hariIndo[dayOfWeek]}, ${String(day).padStart(2, '0')} ${bulanIndo[selectedMonth].substring(0, 3)} ${selectedYear}`;
+
+        const att = attendanceMap.get(ds);
+        const isGlobalHoliday = globalHolidayMap.has(ds);
+        const isPersonalHoliday = personalHolidayMap.has(ds);
+        const isSunday = dayOfWeek === 0;
+
+        let checkIn = '-';
+        let checkOut = '-';
+        let duration = '-';
+        let keterangan = '';
+        let style: RowMeta['style'] = 'hadir';
+
+        if (att) {
+          // Case A: Ada data absensi
+          checkIn = formatTime(att.checkIn);
+          checkOut = formatTime(att.checkOut);
+          duration = formatDuration(att.durationMinutes);
+
+          if (isSunday || isGlobalHoliday) {
+            keterangan = 'Piket';
+            style = 'piket';
+          } else {
+            keterangan = 'Hadir';
+            style = 'hadir';
+          }
+        } else {
+          // Case B: Tidak ada absensi
+          if (isPersonalHoliday) {
+            keterangan = personalHolidayMap.get(ds)!;
+            style = 'cuti';
+          } else if (isGlobalHoliday) {
+            keterangan = globalHolidayMap.get(ds)!;
+            style = 'libur';
+          } else if (isSunday) {
+            keterangan = 'Libur Mingguan';
+            style = 'libur';
+          } else {
+            keterangan = 'Tanpa Keterangan';
+            style = 'alpha';
+          }
+        }
+
+        tableData.push({ row: [dayLabel, checkIn, checkOut, duration, keterangan], style });
+      }
+
+      // 4. Generate PDF
+      const doc = new jsPDF();
+
+      // Title
+      doc.setFontSize(16);
+      doc.text(`Laporan Kehadiran - ${bulanIndo[selectedMonth]} ${selectedYear}`, 14, 20);
+
+      // User Info
+      doc.setFontSize(10);
+      doc.text(`Nama: ${user?.name || 'N/A'}`, 14, 28);
+      doc.text(`Email: ${user?.email || 'N/A'}`, 14, 33);
+      doc.text(`Dicetak: ${format(new Date(), "dd MMMM yyyy, HH:mm")}`, 14, 38);
+
+      // Color map for row styling
+      const styleColors: Record<RowMeta['style'], [number, number, number] | null> = {
+        hadir: null, // default / white
+        piket: [220, 240, 255],   // light blue
+        cuti: [255, 249, 220],    // light yellow
+        libur: [240, 240, 240],   // light grey
+        alpha: null,              // white with red text
+      };
+
+      autoTable(doc, {
+        head: [['Tanggal', 'Jam Masuk', 'Jam Keluar', 'Durasi', 'Keterangan']],
+        body: tableData.map(d => d.row),
+        startY: 44,
+        styles: {
+          fontSize: 8,
+          cellPadding: 2.5,
+          lineColor: [200, 200, 200],
+          lineWidth: 0.1,
+        },
+        headStyles: {
+          fillColor: [19, 127, 236],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 8.5,
+        },
+        columnStyles: {
+          0: { cellWidth: 50 },
+          1: { cellWidth: 28, halign: 'center' },
+          2: { cellWidth: 28, halign: 'center' },
+          3: { cellWidth: 28, halign: 'center' },
+          4: { cellWidth: 46 },
+        },
+        didParseCell: (data) => {
+          if (data.section !== 'body') return;
+          const meta = tableData[data.row.index];
+          if (!meta) return;
+
+          const bg = styleColors[meta.style];
+          if (bg) {
+            data.cell.styles.fillColor = bg;
+          }
+          // Red text for alpha rows
+          if (meta.style === 'alpha') {
+            data.cell.styles.textColor = [200, 50, 50];
+            data.cell.styles.fontStyle = 'bold';
+          }
+          // Bold keterangan column for piket
+          if (meta.style === 'piket' && data.column.index === 4) {
+            data.cell.styles.textColor = [30, 100, 200];
+            data.cell.styles.fontStyle = 'bold';
+          }
+        },
+      });
+
+      // Summary Section
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const finalY = (doc as any).lastAutoTable?.finalY || 150;
-      const summaryY = finalY + 15;
+      const summaryY = finalY + 12;
 
-      doc.setFontSize(12);
+      doc.setFontSize(11);
       doc.setFont(undefined as unknown as string, 'bold');
-      doc.text("Summary", 14, summaryY);
+      doc.text("Ringkasan", 14, summaryY);
 
-      doc.setFontSize(10);
+      doc.setFontSize(9);
       doc.setFont(undefined as unknown as string, 'normal');
-      doc.text(`Total Realization: ${formatDuration(totalMinutes)}`, 14, summaryY + 8);
-      doc.text(`Monthly Target: ${formatDuration(monthlyTargetMinutes)}`, 14, summaryY + 14);
-      doc.text(`${isTargetReached ? 'Bonus' : 'Correction'}: ${formatSurplus(surplusMinutes)}`, 14, summaryY + 20);
-      doc.text(`Completion: ${percentComplete}%`, 14, summaryY + 26);
-      doc.text(`Status: ${isTargetReached ? 'Target Reached' : 'Target Missed'}`, 14, summaryY + 32);
+      doc.text(`Total Realisasi: ${formatDuration(totalMinutes)}`, 14, summaryY + 7);
+      doc.text(`Target Bulanan: ${formatDuration(monthlyTargetMinutes)}`, 14, summaryY + 12);
+      doc.text(`${isTargetReached ? 'Bonus' : 'Koreksi'}: ${formatSurplus(surplusMinutes)}`, 14, summaryY + 17);
+      doc.text(`Pencapaian: ${percentComplete}%`, 14, summaryY + 22);
 
-      // Save the PDF
-      doc.save(`attendance-report-${months[selectedMonth].toLowerCase()}-${selectedYear}.pdf`);
-      toast.success("PDF exported successfully", { id: toastId });
+      // Legend
+      const legendY = summaryY + 30;
+      doc.setFontSize(8);
+      doc.setFont(undefined as unknown as string, 'bold');
+      doc.text("Keterangan Warna:", 14, legendY);
+      doc.setFont(undefined as unknown as string, 'normal');
+
+      const legends = [
+        { label: 'Piket (biru muda)', color: [220, 240, 255] as [number, number, number] },
+        { label: 'Cuti/Sakit (kuning)', color: [255, 249, 220] as [number, number, number] },
+        { label: 'Libur (abu-abu)', color: [240, 240, 240] as [number, number, number] },
+        { label: 'Tanpa Keterangan (teks merah)', color: null },
+      ];
+      legends.forEach((l, i) => {
+        const x = 14 + i * 45;
+        if (l.color) {
+          doc.setFillColor(l.color[0], l.color[1], l.color[2]);
+          doc.rect(x, legendY + 2, 6, 3, 'F');
+        }
+        doc.text(l.label, x + (l.color ? 8 : 0), legendY + 4.5);
+      });
+
+      // Save
+      doc.save(`laporan-kehadiran-${bulanIndo[selectedMonth].toLowerCase()}-${selectedYear}.pdf`);
+      toast.success("PDF berhasil diekspor!", { id: toastId });
     } catch (error) {
       console.error("PDF export error:", error);
-      toast.error("Failed to export PDF", { id: toastId });
+      toast.error("Gagal mengekspor PDF", { id: toastId });
     } finally {
       setIsExporting(false);
     }
@@ -516,7 +633,7 @@ const MonthlyAttendanceReport: React.FC = () => {
                   {/* Export PDF Button */}
                   <button
                     onClick={handleExportPDF}
-                    disabled={isExporting || filteredRecords.length === 0}
+                    disabled={isExporting}
                     className="bg-[#1c2127] hover:bg-[#2d3642] text-emerald-400 border border-emerald-500/50 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors flex items-center gap-2 h-10.5 mt-auto disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isExporting ? (

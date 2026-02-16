@@ -80,7 +80,7 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { date, name, type } = body;
+        const { date, name, type, isDeductible } = body;
 
         if (!date || !name || !type) {
             return NextResponse.json({ message: 'Missing required fields: date, name, type' }, { status: 400 });
@@ -102,6 +102,7 @@ export async function POST(req: Request) {
             dateString,
             name: name.trim(),
             type,
+            isDeductible: isDeductible !== undefined ? isDeductible : true,
             userId: (type === 'PERSONAL' || type === 'PIKET') ? userId : null,
         };
 

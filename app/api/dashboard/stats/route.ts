@@ -3,6 +3,7 @@ import connectToDatabase from '@/lib/db';
 import User from '@/models/User';
 import Attendance from '@/models/Attendance';
 import Holiday from '@/models/Holiday';
+import Adjustment from '@/models/Adjustment';
 import { verifyToken } from '@/lib/auth';
 import { cookies } from 'next/headers';
 
@@ -142,23 +143,35 @@ export async function GET(req: Request) {
                 ]
             });
 
-            // Separate into holiday set and piket set
-            const holidayDateSet = new Set<string>();
+            // Separate into holiday set (with deductible flag) and piket set
+            const holidayDateMap = new Map<string, boolean>(); // dateString -> isDeductible
             const piketDateSet = new Set<string>();
 
             scheduleEntries.forEach((entry: any) => {
                 if (entry.type === 'PIKET') {
                     piketDateSet.add(entry.dateString);
                 } else {
-                    holidayDateSet.add(entry.dateString);
+                    // If multiple holidays on same date, deductible wins (any true → true)
+                    const existing = holidayDateMap.get(entry.dateString);
+                    const isDeductible = entry.isDeductible !== false; // default true for backward compat
+                    holidayDateMap.set(entry.dateString, existing === true || isDeductible);
                 }
             });
 
+            // Fetch active adjustments for this month (global — no userId)
+            const adjustments = await Adjustment.find({
+                startDate: { $lte: endDateStr },
+                endDate: { $gte: startDateStr },
+            });
+
             // Calculate Working Days with priority-based logic:
-            // 1. PIKET → force work day (overrides Sunday & holiday)
+            // 1. PIKET → force work day (overrides Sunday & holiday), no deduction
             // 2. Sunday → skip (default off)
-            // 3. Holiday (Global/Personal) → skip
-            // 4. Else → normal work day
+            // 3. Holiday with isDeductible=true → skip (target reduced)
+            // 4. Holiday with isDeductible=false → still a working day (target stays)
+            // 5. Adjustment period → working day but reduce daily target by reductionMinutes
+            // 6. Else → normal work day
+            let adjustmentDeductionTotal = 0;
             const tempDate = new Date(startOfMonth);
             while (tempDate <= endOfMonth) {
                 const dayOfWeek = tempDate.getDay();
@@ -166,27 +179,35 @@ export async function GET(req: Request) {
 
                 const isPiket = piketDateSet.has(ds);
                 const isSunday = dayOfWeek === 0;
-                const isHoliday = holidayDateSet.has(ds);
+                const holidayDeductible = holidayDateMap.get(ds); // undefined = no holiday, true = deductible, false = not
 
                 if (isPiket) {
-                    // PIKET overrides everything — forced work day
+                    // PIKET overrides everything — forced work day, no deduction
                     workingDaysCount++;
                 } else if (isSunday) {
                     // Default day off
-                } else if (isHoliday) {
-                    // Holiday / leave — skip
+                } else if (holidayDeductible === true) {
+                    // Deductible holiday (sakit/emergency) — skip, target reduced
                 } else {
-                    // Normal work day
+                    // Normal work day OR non-deductible holiday (cuti biasa — target stays)
                     workingDaysCount++;
+
+                    // Check if this date falls within any adjustment period
+                    for (const adj of adjustments) {
+                        if (ds >= adj.startDate && ds <= adj.endDate) {
+                            adjustmentDeductionTotal += (adj.reductionMinutes || 0);
+                            break; // only apply first matching adjustment
+                        }
+                    }
                 }
 
                 tempDate.setDate(tempDate.getDate() + 1);
             }
 
-            // Dynamic Monthly Target = working days * daily target
-            dynamicMonthlyTarget = workingDaysCount * dailyTarget;
+            // Dynamic Monthly Target = (working days * daily target) - adjustment deductions
+            dynamicMonthlyTarget = (workingDaysCount * dailyTarget) - adjustmentDeductionTotal;
 
-            console.log("[Stats API] Working days:", workingDaysCount, "Holidays:", holidayDateSet.size, "Piket:", piketDateSet.size, "Dynamic target:", dynamicMonthlyTarget);
+            console.log("[Stats API] Working days:", workingDaysCount, "Holidays:", holidayDateMap.size, "Piket:", piketDateSet.size, "Adj deduction:", adjustmentDeductionTotal, "Dynamic target:", dynamicMonthlyTarget);
 
         } catch (statsError) {
             console.error("[Stats API] Error calculating stats (continuing with defaults):", statsError);
