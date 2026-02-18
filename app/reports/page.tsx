@@ -455,13 +455,14 @@ const MonthlyAttendanceReport: React.FC = () => {
         hadir: null, // default / white
         piket: [220, 252, 231],   // #dcfce7 green
         cuti: [254, 249, 195],    // #fef9c3 yellow
-        libur: [243, 244, 246],   // #f3f4f6 grey
+        libur: [243, 244, 246],   // #787878ff grey
         alpha: null,              // white with red text
       };
 
       autoTable(doc, {
         head: [['Tanggal', 'Jam Masuk', 'Jam Keluar', 'Durasi', 'Keterangan']],
         body: tableData.map(d => d.row),
+        theme: 'grid',
         startY: 44,
         styles: {
           fontSize: 8,
