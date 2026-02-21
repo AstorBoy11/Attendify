@@ -14,7 +14,7 @@ Berdasarkan implementasi saat ini:
     * **Check-In / Check-Out**: Tombol akses cepat untuk memulai dan mengakhiri sesi kerja.
     * **Ringkasan Statistik**: Visualisasi progres bulanan dan tahunan dengan progress bar interaktif.
     * **Aktivitas Terkini**: Log riwayat check-in dan check-out.
-* **Modern UI/UX**: Desain antarmuka gelap (Dark Mode) yang elegan dengan transisi halus dan latar belakang gradasi.
+* **Modern UI/UX**: Desain antarmuka gelap (Dark Mode) yang elegan dengan transisi halus.
 * **Responsif**: Tampilan yang optimal di perangkat desktop, tablet, dan mobile.
 
 ## 🛠️ Teknologi yang Digunakan
