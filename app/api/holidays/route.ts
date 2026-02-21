@@ -4,6 +4,15 @@ import Holiday from '@/models/Holiday';
 import { verifyToken } from '@/lib/auth';
 import { cookies } from 'next/headers';
 
+type HolidayType = 'GLOBAL' | 'CUTI_BERSAMA' | 'PERSONAL' | 'PIKET';
+
+type CreateHolidayBody = {
+    date: string;
+    name: string;
+    type: HolidayType;
+    isDeductible?: boolean;
+};
+
 // Helper: Extract userId from JWT token cookie
 async function getAuthenticatedUserId(): Promise<string | null> {
     const cookieStore = await cookies();
@@ -49,22 +58,24 @@ export async function GET(req: Request) {
         const startDateStr = `${year}-${monthStr}-01`;
         const endDateStr = `${year}-${monthStr}-31`; // safe upper bound
 
-        // Fetch GLOBAL holidays + PERSONAL/PIKET entries for this user
+        // Fetch global holidays (GLOBAL + CUTI_BERSAMA) + PERSONAL/PIKET entries for this user
         const holidays = await Holiday.find({
             dateString: { $gte: startDateStr, $lte: endDateStr },
             $or: [
                 { type: 'GLOBAL' },
+                { type: 'CUTI_BERSAMA' },
                 { type: 'PERSONAL', userId: userId },
                 { type: 'PIKET', userId: userId }
             ]
         }).sort({ dateString: 1 });
 
         return NextResponse.json({ holidays });
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const details = error instanceof Error ? error.message : String(error);
         console.error('[Holidays API] GET error:', error);
         return NextResponse.json({
             message: 'Internal server error',
-            details: error.message
+            details
         }, { status: 500 });
     }
 }
@@ -79,15 +90,15 @@ export async function POST(req: Request) {
             return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
         }
 
-        const body = await req.json();
+        const body = await req.json() as CreateHolidayBody;
         const { date, name, type, isDeductible } = body;
 
         if (!date || !name || !type) {
             return NextResponse.json({ message: 'Missing required fields: date, name, type' }, { status: 400 });
         }
 
-        if (!['GLOBAL', 'PERSONAL', 'PIKET'].includes(type)) {
-            return NextResponse.json({ message: 'Invalid type. Must be GLOBAL, PERSONAL, or PIKET.' }, { status: 400 });
+        if (!['GLOBAL', 'CUTI_BERSAMA', 'PERSONAL', 'PIKET'].includes(type)) {
+            return NextResponse.json({ message: 'Invalid type. Must be GLOBAL, CUTI_BERSAMA, PERSONAL, or PIKET.' }, { status: 400 });
         }
 
         // Convert date to dateString (timezone-safe)
@@ -97,12 +108,12 @@ export async function POST(req: Request) {
         const [y, m, d] = dateString.split('-').map(Number);
         const normalizedDate = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
 
-        const holidayData: any = {
+        const holidayData = {
             date: normalizedDate,
             dateString,
             name: name.trim(),
             type,
-            isDeductible: type === 'GLOBAL' ? true : type === 'PIKET' ? false : (isDeductible !== undefined ? isDeductible : true),
+            isDeductible: (type === 'GLOBAL' || type === 'CUTI_BERSAMA') ? true : type === 'PIKET' ? false : (isDeductible !== undefined ? isDeductible : true),
             userId: (type === 'PERSONAL' || type === 'PIKET') ? userId : null,
         };
 
@@ -114,7 +125,7 @@ export async function POST(req: Request) {
         });
 
         if (existing) {
-            const typeLabel = type === 'GLOBAL' ? 'Global Holiday' : type === 'PERSONAL' ? 'Personal Leave' : 'Piket';
+            const typeLabel = type === 'GLOBAL' ? 'Global Holiday' : type === 'CUTI_BERSAMA' ? 'Cuti Bersama' : type === 'PERSONAL' ? 'Personal Leave' : 'Piket';
             return NextResponse.json({
                 message: `A ${typeLabel} already exists on ${dateString}.`
             }, { status: 409 });
@@ -123,19 +134,20 @@ export async function POST(req: Request) {
         const holiday = await Holiday.create(holidayData);
 
         return NextResponse.json({ message: 'Holiday created successfully', holiday }, { status: 201 });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[Holidays API] POST error:', error);
 
         // Handle MongoDB duplicate key error
-        if (error.code === 11000) {
+        if (typeof error === 'object' && error !== null && 'code' in error && (error as { code?: unknown }).code === 11000) {
             return NextResponse.json({
                 message: 'A holiday already exists for this date and type.'
             }, { status: 409 });
         }
 
+        const details = error instanceof Error ? error.message : String(error);
         return NextResponse.json({
             message: 'Internal server error',
-            details: error.message
+            details
         }, { status: 500 });
     }
 }
@@ -170,11 +182,12 @@ export async function DELETE(req: Request) {
         await Holiday.findByIdAndDelete(id);
 
         return NextResponse.json({ message: 'Holiday deleted successfully' });
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const details = error instanceof Error ? error.message : String(error);
         console.error('[Holidays API] DELETE error:', error);
         return NextResponse.json({
             message: 'Internal server error',
-            details: error.message
+            details
         }, { status: 500 });
     }
 }

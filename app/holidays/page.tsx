@@ -30,7 +30,7 @@ interface Holiday {
     date: string;
     dateString: string;
     name: string;
-    type: 'GLOBAL' | 'PERSONAL' | 'PIKET';
+    type: 'GLOBAL' | 'CUTI_BERSAMA' | 'PERSONAL' | 'PIKET';
     isDeductible: boolean;
     userId: string | null;
 }
@@ -78,7 +78,7 @@ export default function HolidaysPage() {
     // Form state
     const [showForm, setShowForm] = useState(false);
     const [formName, setFormName] = useState('');
-    const [formType, setFormType] = useState<'GLOBAL' | 'PERSONAL' | 'PIKET'>('GLOBAL');
+    const [formType, setFormType] = useState<'GLOBAL' | 'CUTI_BERSAMA' | 'PERSONAL' | 'PIKET'>('GLOBAL');
     const [formDeductible, setFormDeductible] = useState(true);
 
     // Detail popover state
@@ -218,6 +218,7 @@ export default function HolidaysPage() {
 
     // Build maps for calendar modifiers
     const globalDates: Date[] = [];
+    const cutiBersamaDates: Date[] = [];
     const personalDates: Date[] = [];
     const piketDates: Date[] = [];
     const holidayMap = new Map<string, Holiday[]>();
@@ -226,6 +227,8 @@ export default function HolidaysPage() {
         const d = parseDateString(h.dateString);
         if (h.type === 'GLOBAL') {
             globalDates.push(d);
+        } else if (h.type === 'CUTI_BERSAMA') {
+            cutiBersamaDates.push(d);
         } else if (h.type === 'PIKET') {
             piketDates.push(d);
         } else {
@@ -240,12 +243,13 @@ export default function HolidaysPage() {
     const getTypeColor = (type: string) => {
         switch (type) {
             case 'GLOBAL': return { dot: 'bg-red-500', badge: 'bg-red-500/10 text-red-400', border: 'border-red-500/50 bg-red-500/10 text-red-400' };
+            case 'CUTI_BERSAMA': return { dot: 'bg-orange-400', badge: 'bg-orange-500/10 text-orange-400', border: 'border-orange-500/50 bg-orange-500/10 text-orange-400' };
             case 'PIKET': return { dot: 'bg-[#137fec]', badge: 'bg-[#137fec]/10 text-[#137fec]', border: 'border-[#137fec]/50 bg-[#137fec]/10 text-[#137fec]' };
             default: return { dot: 'bg-amber-400', badge: 'bg-amber-400/10 text-amber-400', border: 'border-amber-400/50 bg-amber-400/10 text-amber-400' };
         }
     };
-    const getTypeLabel = (type: string) => type === 'GLOBAL' ? 'Libur Nasional' : type === 'PIKET' ? 'Piket' : 'Cuti/Sakit';
-    const getTypeIcon = (type: string) => type === 'GLOBAL' ? <Globe className="size-3" /> : type === 'PIKET' ? <Briefcase className="size-3" /> : <UserRound className="size-3" />;
+    const getTypeLabel = (type: string) => type === 'GLOBAL' ? 'Libur Nasional' : type === 'CUTI_BERSAMA' ? 'Cuti Bersama' : type === 'PIKET' ? 'Piket' : 'Cuti/Sakit';
+    const getTypeIcon = (type: string) => type === 'GLOBAL' ? <Globe className="size-3" /> : type === 'CUTI_BERSAMA' ? <CalendarDays className="size-3" /> : type === 'PIKET' ? <Briefcase className="size-3" /> : <UserRound className="size-3" />;
 
     // Handle calendar day click
     const handleDayClick = (day: Date) => {
@@ -291,7 +295,7 @@ export default function HolidaysPage() {
                     date: safeDate.toISOString(),
                     name: formName.trim(),
                     type: formType,
-                    isDeductible: formType === 'PIKET' ? false : formDeductible,
+                    isDeductible: formType === 'PIKET' ? false : (formType === 'GLOBAL' || formType === 'CUTI_BERSAMA' ? true : formDeductible),
                 }),
             });
 
@@ -306,7 +310,7 @@ export default function HolidaysPage() {
             } else {
                 toast.error(data.message || 'Failed to add holiday', { id: toastId });
             }
-        } catch (error) {
+        } catch {
             toast.error('Network error. Please try again.', { id: toastId });
         } finally {
             setSubmitting(false);
@@ -328,7 +332,7 @@ export default function HolidaysPage() {
             } else {
                 toast.error(data.message || 'Failed to delete', { id: toastId });
             }
-        } catch (error) {
+        } catch {
             toast.error('Network error.', { id: toastId });
         }
     };
@@ -369,6 +373,10 @@ export default function HolidaysPage() {
                                                 National Holiday
                                             </div>
                                             <div className="flex items-center gap-2 text-xs text-[#9dabb9]">
+                                                <span className="size-2.5 rounded-full bg-orange-400"></span>
+                                                Cuti Bersama
+                                            </div>
+                                            <div className="flex items-center gap-2 text-xs text-[#9dabb9]">
                                                 <span className="size-2.5 rounded-full bg-amber-400"></span>
                                                 Personal Leave
                                             </div>
@@ -388,11 +396,13 @@ export default function HolidaysPage() {
                                                 onMonthChange={setCurrentMonth}
                                                 modifiers={{
                                                     globalHoliday: globalDates,
+                                                    cutiBersama: cutiBersamaDates,
                                                     personalLeave: personalDates,
                                                     piketDay: piketDates,
                                                 }}
                                                 modifiersClassNames={{
                                                     globalHoliday: 'holiday-global',
+                                                    cutiBersama: 'holiday-cuti-bersama',
                                                     personalLeave: 'holiday-personal',
                                                     piketDay: 'holiday-piket',
                                                 }}
@@ -406,7 +416,7 @@ export default function HolidaysPage() {
                                                     outside: "text-[#3b4754] opacity-50",
                                                 }}
                                                 style={{
-                                                    // @ts-ignore
+                                                    // @ts-expect-error -- CSS variable key for DayPicker sizing
                                                     '--cell-size': '3rem',
                                                 }}
                                             />
@@ -457,7 +467,7 @@ export default function HolidaysPage() {
                                                 {/* Type Select */}
                                                 <div>
                                                     <label className="text-sm font-medium text-[#9dabb9] mb-1.5 block">Type</label>
-                                                    <div className="grid grid-cols-3 gap-2">
+                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                                                         <button
                                                             type="button"
                                                             onClick={() => { setFormType('GLOBAL'); setFormName(''); setFormDeductible(true); }}
@@ -468,6 +478,17 @@ export default function HolidaysPage() {
                                                         >
                                                             <Globe className="size-3.5" />
                                                             Libur Nasional
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => { setFormType('CUTI_BERSAMA'); setFormName('Cuti Bersama'); setFormDeductible(true); }}
+                                                            className={`flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-lg border text-xs font-medium transition-all ${formType === 'CUTI_BERSAMA'
+                                                                ? 'border-orange-500/50 bg-orange-500/10 text-orange-400'
+                                                                : 'border-[#3b4754] bg-[#1c2127] text-[#9dabb9] hover:border-[#4b5563]'
+                                                                }`}
+                                                        >
+                                                            <CalendarDays className="size-3.5" />
+                                                            Cuti Bersama
                                                         </button>
                                                         <button
                                                             type="button"
@@ -823,6 +844,8 @@ export default function HolidaysPage() {
             <style jsx global>{`
                 .holiday-global button,
                 .holiday-global > div,
+                .holiday-cuti-bersama button,
+                .holiday-cuti-bersama > div,
                 .holiday-personal button,
                 .holiday-personal > div,
                 .holiday-piket button,
@@ -852,6 +875,18 @@ export default function HolidaysPage() {
                     height: 5px;
                     border-radius: 50%;
                     background-color: #fbbf24;
+                }
+                .holiday-cuti-bersama button::after,
+                td:has(.holiday-cuti-bersama) button::after {
+                    content: '';
+                    position: absolute;
+                    bottom: 2px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 5px;
+                    height: 5px;
+                    border-radius: 50%;
+                    background-color: #fb923c;
                 }
                 .holiday-piket button::after,
                 td:has(.holiday-piket) button::after {

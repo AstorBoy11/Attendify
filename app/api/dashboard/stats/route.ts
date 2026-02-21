@@ -20,7 +20,7 @@ type AdjustmentInput = {
 };
 
 type ScheduleEntry = {
-    type: 'GLOBAL' | 'PERSONAL' | 'PIKET';
+    type: 'GLOBAL' | 'CUTI_BERSAMA' | 'PERSONAL' | 'PIKET';
     dateString: string;
     isDeductible?: boolean;
 };
@@ -189,7 +189,7 @@ export async function GET(req: Request) {
             // Daily Target from user settings
             const dailyTarget = user.dailyTarget || 480;
 
-            // Fetch schedule entries for this month (GLOBAL + PERSONAL + PIKET for this user)
+            // Fetch schedule entries for this month (GLOBAL + CUTI_BERSAMA + PERSONAL + PIKET for this user)
             const monthStr = String(selectedMonthIndex + 1).padStart(2, '0');
             const yearStr = String(selectedYear);
             const startDateStr = `${yearStr}-${monthStr}-01`;
@@ -199,6 +199,7 @@ export async function GET(req: Request) {
                 dateString: { $gte: startDateStr, $lte: endDateStr },
                 $or: [
                     { type: 'GLOBAL' },
+                    { type: 'CUTI_BERSAMA' },
                     { type: 'PERSONAL', userId: user._id },
                     { type: 'PIKET', userId: user._id }
                 ]

@@ -27,7 +27,7 @@ interface HolidayEntry {
   _id: string;
   dateString: string;
   name: string;
-  type: 'GLOBAL' | 'PERSONAL' | 'PIKET';
+  type: 'GLOBAL' | 'CUTI_BERSAMA' | 'PERSONAL' | 'PIKET';
   isDeductible?: boolean;
 }
 
@@ -345,15 +345,18 @@ const MonthlyAttendanceReport: React.FC = () => {
 
       // Build holiday lookup maps for keterangan + deductible tracking
       const globalHolidayMap = new Map<string, string>();
+      const cutiBersamaDateSet = new Set<string>();
       const personalHolidayMap = new Map<string, string>();
       const holidayDeductibleMap = new Map<string, boolean>();
       holidays.forEach(h => {
         if (h.type === 'GLOBAL') {
           globalHolidayMap.set(h.dateString, h.name);
+        } else if (h.type === 'CUTI_BERSAMA') {
+          cutiBersamaDateSet.add(h.dateString);
         } else if (h.type === 'PERSONAL') {
           personalHolidayMap.set(h.dateString, h.name);
         }
-        if (h.type === 'GLOBAL' || h.type === 'PERSONAL') {
+        if (h.type === 'GLOBAL' || h.type === 'CUTI_BERSAMA' || h.type === 'PERSONAL') {
           const existing = holidayDeductibleMap.get(h.dateString);
           const isDeductible = h.isDeductible !== false;
           holidayDeductibleMap.set(h.dateString, existing === true || isDeductible);
@@ -414,6 +417,7 @@ const MonthlyAttendanceReport: React.FC = () => {
         );
         const hasAttendance = dayRecords.length > 0;
         const isGlobalHoliday = globalHolidayMap.has(ds);
+        const isCutiBersama = cutiBersamaDateSet.has(ds);
         const isPersonalHoliday = personalHolidayMap.has(ds);
         const isSunday = dayOfWeek === 0;
         const holidayDeductible = holidayDeductibleMap.get(ds);
@@ -421,7 +425,7 @@ const MonthlyAttendanceReport: React.FC = () => {
         const isToday = date >= todayStart && date <= todayEnd;
         const reductionForDay = getAdjustmentReductionForDay(date, adjustmentWindows);
         const dynamicDailyTarget = Math.max(0, baseDailyTarget - reductionForDay);
-        const showDynamicTargetNote = !isPiketDay && !isSunday && !isGlobalHoliday && !isPersonalHoliday && reductionForDay > 0;
+        const showDynamicTargetNote = !isPiketDay && !isSunday && !isGlobalHoliday && !isCutiBersama && !isPersonalHoliday && reductionForDay > 0;
         const targetNote = showDynamicTargetNote ? ` (Target ${dynamicDailyTarget}m)` : '';
 
         const completedMinutes = dayRecords.reduce((sum, record) => sum + (record.durationMinutes || 0), 0);
@@ -449,7 +453,7 @@ const MonthlyAttendanceReport: React.FC = () => {
           checkOut = lastRecord.checkOut ? formatTime(lastRecord.checkOut) : (isToday ? 'Belum' : '-');
           duration = formatDuration(dayTotalMinutes);
 
-          if (isSunday || isGlobalHoliday) {
+          if (isSunday || isGlobalHoliday || isCutiBersama) {
             keterangan = 'Piket';
             style = 'piket';
           } else {
@@ -467,6 +471,9 @@ const MonthlyAttendanceReport: React.FC = () => {
               keterangan = `Cuti (${rawName})`;
             }
             style = 'cuti';
+          } else if (isCutiBersama) {
+            keterangan = 'Cuti Bersama';
+            style = 'libur';
           } else if (isGlobalHoliday) {
             keterangan = globalHolidayMap.get(ds)!;
             style = 'libur';
