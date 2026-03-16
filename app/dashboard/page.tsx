@@ -57,6 +57,18 @@ const AttendifyDashboard: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // Real-time stats polling when checked-in
+  useEffect(() => {
+    if (stats.todayStatus !== 'checked-in') return;
+
+    // Fetch stats every 30 seconds for live progress tracking
+    const pollInterval = setInterval(() => {
+      fetchStats();
+    }, 30000);
+
+    return () => clearInterval(pollInterval);
+  }, [stats.todayStatus]);
+
   const fetchStats = async () => {
     try {
       const res = await fetch('/api/dashboard/stats');
