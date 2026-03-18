@@ -52,7 +52,7 @@ const MonthlyAttendanceReport: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [user, setUser] = useState<{ name: string, email: string, avatar?: string } | undefined>(undefined);
-  const [targetBase, setTargetBase] = useState(11240);
+  const [dailyTargetBase, setDailyTargetBase] = useState(480);
 
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
@@ -174,7 +174,7 @@ const MonthlyAttendanceReport: React.FC = () => {
       const settingsRes = await fetch('/api/settings/target');
       if (settingsRes.ok) {
         const settingsData = await settingsRes.json();
-        setTargetBase(settingsData.monthlyTargetBase);
+        setDailyTargetBase(Number(settingsData.dailyTarget || 480));
       }
 
       const historyRes = await fetch(`/api/attendance/history?month=${selectedMonth}&year=${selectedYear}`);
@@ -385,7 +385,7 @@ const MonthlyAttendanceReport: React.FC = () => {
 
       // 3. Iterate every day of the month
       const totalDays = new Date(selectedYear, selectedMonth + 1, 0).getDate();
-      const baseDailyTarget = 480; // 8 hours
+      const baseDailyTarget = dailyTargetBase;
       const nowForLive = new Date();
       const todayStart = getStartOfDay(nowForLive);
       const todayEnd = getEndOfDay(nowForLive);
@@ -399,6 +399,7 @@ const MonthlyAttendanceReport: React.FC = () => {
       let totalDeduction = 0;
       let totalPiketBonus = 0;
       let totalAdjDeduction = 0;
+      let calendarBase = 0;
 
       // Row shape: [Tanggal, Jam Masuk, Jam Keluar, Durasi, Keterangan]
       // Plus metadata for styling
@@ -489,13 +490,19 @@ const MonthlyAttendanceReport: React.FC = () => {
         tableData.push({ row: [dayLabel, checkIn, checkOut, duration, keterangan], style });
 
         // Target calculation (same priority as dashboard stats)
+        if (!isSunday) {
+          calendarBase += baseDailyTarget;
+        }
+
         if (isPiketDay) {
-          totalPiketBonus += baseDailyTarget;
+          totalPiketBonus += dynamicDailyTarget;
         } else if (isSunday) {
           // skip
         } else if (holidayDeductible !== undefined) {
           if (holidayDeductible === true) {
-            totalDeduction += baseDailyTarget;
+            totalDeduction += dynamicDailyTarget;
+          } else {
+            totalAdjDeduction += reductionForDay;
           }
         } else {
           // Normal work day — check adjustments
@@ -608,7 +615,7 @@ const MonthlyAttendanceReport: React.FC = () => {
       // Breakdown detail
       doc.setFontSize(7.5);
       doc.setTextColor(120, 120, 120);
-      doc.text(`Base: ${targetBase}m  |  Potongan Libur: -${totalDeduction}m  |  Potongan Adjustment: -${totalAdjDeduction}m  |  Bonus Piket: +${totalPiketBonus}m`, 14, summaryY + 28);
+      doc.text(`Base Kalender: ${calendarBase}m  |  Potongan Libur: -${totalDeduction}m  |  Potongan Adjustment: -${totalAdjDeduction}m  |  Bonus Piket: +${totalPiketBonus}m`, 14, summaryY + 28);
       doc.setTextColor(0, 0, 0);
 
       // Legend

@@ -14,11 +14,9 @@ const TargetConfiguration: React.FC = () => {
     const [saving, setSaving] = useState(false);
     const [user, setUser] = useState<{ name: string, email: string, avatar?: string } | undefined>(undefined);
     interface Settings {
-        monthlyTargetBase: number;
         dailyTarget: number;
     }
     const [settings, setSettings] = useState<Settings>({
-        monthlyTargetBase: 11240,
         dailyTarget: 480
     });
 
@@ -43,7 +41,6 @@ const TargetConfiguration: React.FC = () => {
                 if (settingsRes.ok) {
                     const settingsData = await settingsRes.json();
                     setSettings({
-                        monthlyTargetBase: settingsData.monthlyTargetBase || 11240,
                         dailyTarget: settingsData.dailyTarget || 480
                     });
                 }
@@ -120,34 +117,9 @@ const TargetConfiguration: React.FC = () => {
                                                     <Skeleton className="h-14 w-full rounded-lg bg-[#283039]" />
                                                     <Skeleton className="h-4 w-32 bg-[#283039]" />
                                                 </div>
-                                                <div className="space-y-2">
-                                                    <Skeleton className="h-5 w-40 bg-[#283039]" />
-                                                    <Skeleton className="h-14 w-full rounded-lg bg-[#283039]" />
-                                                    <Skeleton className="h-4 w-32 bg-[#283039]" />
-                                                </div>
                                             </>
                                         ) : (
                                             <>
-                                                {/* Monthly Target */}
-                                                <label className="flex flex-col flex-1">
-                                                    <p className="text-white text-base font-medium leading-normal pb-2">Monthly Target (minutes)</p>
-                                                    <div className="relative">
-                                                        <input
-                                                            className="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-white focus:outline-0 focus:ring-2 focus:ring-[#137fec]/50 border border-[#3b4754] bg-[#1c2127] focus:border-[#137fec] h-14 placeholder:text-[#9dabb9] p-3.75 pl-12 text-base font-normal leading-normal transition-all"
-                                                            type="number"
-                                                            value={settings.monthlyTargetBase}
-                                                            onChange={(e) => setSettings({ ...settings, monthlyTargetBase: parseInt(e.target.value) || 0 })}
-                                                            disabled={loading}
-                                                        />
-                                                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9dabb9]">
-                                                            <span className="material-symbols-outlined text-[20px]">calendar_month</span>
-                                                        </div>
-                                                    </div>
-                                                    <p className="text-[#9dabb9] text-xs pt-1.5 pl-1">
-                                                        Default: 11,240 minutes.
-                                                    </p>
-                                                </label>
-
                                                 {/* Daily Target */}
                                                 <label className="flex flex-col flex-1">
                                                     <p className="text-white text-base font-medium leading-normal pb-2">Daily Target (minutes)</p>
@@ -175,7 +147,7 @@ const TargetConfiguration: React.FC = () => {
                                     <div className="bg-[#1c2127] rounded-lg p-4 border border-[#283039] flex gap-3 items-start">
                                         <span className="material-symbols-outlined text-[#137fec] text-[20px] mt-0.5">info</span>
                                         <p className="text-[#9dabb9] text-sm font-normal leading-relaxed">
-                                            These targets allow you to track your daily and monthly progress independently. Adjust them to match your work schedule.
+                                            Monthly target is now calculated automatically from calendar days, holidays, and adjustments. Configure only your daily target here.
                                         </p>
                                     </div>
 

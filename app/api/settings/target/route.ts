@@ -19,7 +19,6 @@ export async function GET(req: Request) {
         if (!user) return NextResponse.json({ message: 'User not found' }, { status: 404 });
 
         return NextResponse.json({
-            monthlyTargetBase: user.monthlyTargetBase || 11240,
             dailyTarget: user.dailyTarget || 480
         });
     } catch (error) {
@@ -38,13 +37,15 @@ export async function POST(req: Request) {
         const payload = await verifyToken(token);
         if (!payload) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
-        const { monthlyTargetBase, dailyTarget } = await req.json();
+        const { dailyTarget } = await req.json();
 
-        // Optional: Recalculate monthly/yearly if we wanted to store them derived
-        // For now just save the user's preference
+        const parsedDailyTarget = Number(dailyTarget);
+        if (!Number.isFinite(parsedDailyTarget) || parsedDailyTarget < 0) {
+            return NextResponse.json({ message: 'dailyTarget must be a non-negative number' }, { status: 400 });
+        }
+
         await User.findByIdAndUpdate(payload.userId, {
-            monthlyTargetBase,
-            dailyTarget
+            dailyTarget: parsedDailyTarget
         });
 
         return NextResponse.json({ message: 'Settings updated' });

@@ -11,12 +11,10 @@ const TargetConfiguration: React.FC = () => {
     const [saving, setSaving] = useState(false);
     const [user, setUser] = useState<{ name: string, email: string } | undefined>(undefined);
     interface Settings {
-        monthlyTargetBase: number;
-        yearlyTarget: number;
+        dailyTarget: number;
     }
     const [settings, setSettings] = useState<Settings>({
-        monthlyTargetBase: 11240,
-        yearlyTarget: 134880
+        dailyTarget: 480
     });
 
     useEffect(() => {
@@ -35,7 +33,9 @@ const TargetConfiguration: React.FC = () => {
                 const settingsRes = await fetch('/api/settings/target');
                 if (settingsRes.ok) {
                     const settingsData = await settingsRes.json();
-                    setSettings(settingsData);
+                    setSettings({
+                        dailyTarget: settingsData.dailyTarget || 480
+                    });
                 }
             } catch (error) {
                 console.error("Failed to load data", error);
@@ -103,33 +103,17 @@ const TargetConfiguration: React.FC = () => {
                                     {/* Input Fields */}
                                     <div className="flex flex-col gap-5">
                                         <label className="flex flex-col flex-1">
-                                            <p className="text-white text-base font-medium leading-normal pb-2">Monthly Target Base (31 Days)</p>
+                                            <p className="text-white text-base font-medium leading-normal pb-2">Daily Target (minutes)</p>
                                             <div className="relative">
                                                 <input
                                                     className="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-white focus:outline-0 focus:ring-2 focus:ring-[#137fec]/50 border border-[#3b4754] bg-[#1c2127] focus:border-[#137fec] h-14 placeholder:text-[#9dabb9] p-3.75 pl-12 text-base font-normal leading-normal transition-all"
                                                     type="number"
-                                                    value={settings.monthlyTargetBase}
-                                                    onChange={(e) => setSettings({ ...settings, monthlyTargetBase: parseInt(e.target.value) || 0 })}
+                                                    value={settings.dailyTarget}
+                                                    onChange={(e) => setSettings({ ...settings, dailyTarget: parseInt(e.target.value) || 0 })}
                                                     disabled={loading}
                                                 />
                                                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9dabb9]">
-                                                    <span className="material-symbols-outlined text-[20px]">calendar_month</span>
-                                                </div>
-                                            </div>
-                                        </label>
-
-                                        <label className="flex flex-col flex-1">
-                                            <p className="text-white text-base font-medium leading-normal pb-2">Yearly Target (minutes)</p>
-                                            <div className="relative">
-                                                <input
-                                                    className="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-white focus:outline-0 focus:ring-2 focus:ring-[#137fec]/50 border border-[#3b4754] bg-[#1c2127] focus:border-[#137fec] h-14 placeholder:text-[#9dabb9] p-3.75 pl-12 text-base font-normal leading-normal transition-all"
-                                                    type="number"
-                                                    value={settings.yearlyTarget}
-                                                    onChange={(e) => setSettings({ ...settings, yearlyTarget: parseInt(e.target.value) || 0 })}
-                                                    disabled={loading}
-                                                />
-                                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9dabb9]">
-                                                    <span className="material-symbols-outlined text-[20px]">calendar_today</span>
+                                                    <span className="material-symbols-outlined text-[20px]">schedule</span>
                                                 </div>
                                             </div>
                                         </label>
@@ -139,7 +123,7 @@ const TargetConfiguration: React.FC = () => {
                                     <div className="bg-[#1c2127] rounded-lg p-4 border border-[#283039] flex gap-3 items-start">
                                         <span className="material-symbols-outlined text-[#137fec] text-[20px] mt-0.5">info</span>
                                         <p className="text-[#9dabb9] text-sm font-normal leading-relaxed">
-                                            Changes will affect how surplus and deficits are calculated on your dashboard and reports.
+                                            Monthly target is calculated automatically from calendar days, holidays, and adjustments.
                                         </p>
                                     </div>
 
